@@ -1,36 +1,180 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Noctalys
 
-## Getting Started
+> Plateforme de publication de fictions et musiques nocturnes
 
-First, run the development server:
+## 📖 Description
+
+Noctalys est une plateforme web élégante dédiée à la publication et au partage de fictions littéraires et de musiques originales. Le projet offre une expérience utilisateur immersive avec une esthétique nocturne et lunaire.
+
+## 🛠️ Stack Technique
+
+- **Framework**: Next.js 15 (App Router)
+- **Runtime**: React 19
+- **Langage**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS V4
+- **UI Components**: Shadcn UI
+- **Base de données**: PostgreSQL avec Prisma ORM
+- **Authentification**: Better Auth
+- **Déploiement**: Vercel
+
+## 🚀 Installation
+
+### Prérequis
+
+- Node.js 18+
+- pnpm
+- PostgreSQL (ou Prisma Postgres)
+
+### Étapes
+
+1. Cloner le repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd noctalys
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Installer les dépendances
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Configurer les variables d'environnement
 
-## Learn More
+```bash
+cp .env.example .env
+```
 
-To learn more about Next.js, take a look at the following resources:
+Remplissez les variables dans `.env` :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `DATABASE_URL`: URL de connexion PostgreSQL
+- `AUTH_SECRET`: Clé secrète pour l'authentification
+- `NEXT_PUBLIC_APP_URL`: URL de l'application
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Initialiser la base de données
 
-## Deploy on Vercel
+```bash
+# Générer le Prisma Client
+pnpm prisma generate
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Créer les tables
+pnpm prisma migrate dev
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# (Optionnel) Seed avec des données de test
+pnpm prisma db seed
+```
+
+5. Lancer le serveur de développement
+
+```bash
+pnpm dev
+```
+
+L'application sera disponible sur [http://localhost:3000](http://localhost:3000)
+
+## 📁 Structure du Projet
+
+```
+noctalys/
+├── app/                    # Next.js App Router
+│   ├── (public)/          # Routes publiques
+│   ├── (admin)/           # Routes admin (protégées)
+│   └── api/               # API Routes
+├── components/            # Composants React partagés
+│   └── layout/           # Composants de layout (Header, Footer)
+├── features/             # Features (feature-first architecture)
+│   ├── fiction/
+│   ├── track/
+│   └── auth/
+├── ui/                   # Design system (Shadcn UI)
+├── lib/                  # Librairies externes (Prisma, Auth)
+├── utils/                # Fonctions utilitaires pures
+├── config/               # Configuration globale
+├── types/                # Types TypeScript globaux
+├── data/                 # Données statiques
+├── services/             # Services API (Axios)
+├── hooks/                # Hooks React personnalisés
+└── prisma/               # Schéma et migrations Prisma
+```
+
+## 🎨 Design System
+
+Le projet utilise une palette de couleurs **monochrome silver** (Moon 50-950) avec des accents désaturés pour une esthétique nocturne élégante. Voir `docs/concept-graphic.md` pour plus de détails.
+
+### Tokens Principaux
+
+- **Palette Moon**: 11 nuances de gris argenté
+- **Halos subtils**: Effets de lueur avec opacité 0.2-0.4
+- **Typographie**: Inter (sans), Lora (serif), JetBrains Mono (mono)
+- **Animations**: glow-pulse, float-subtle, fade-in, slide-up
+
+## 📝 Scripts Disponibles
+
+```bash
+# Développement
+pnpm dev              # Lancer le serveur de développement
+pnpm build            # Build de production
+pnpm start            # Serveur de production
+pnpm lint             # Linter ESLint
+pnpm format           # Formater avec Prettier
+pnpm format:check     # Vérifier le formatage
+
+# Base de données
+pnpm prisma studio    # Interface Prisma Studio
+pnpm prisma migrate dev    # Créer une migration
+pnpm prisma generate  # Générer le Prisma Client
+```
+
+## 🔐 Authentification
+
+L'authentification est gérée par **Better Auth** avec la stratégie email/password. Les sessions sont stockées en base de données avec une expiration de 7 jours.
+
+## 📄 Documentation
+
+- `docs/PRD.md`: Product Requirements Document complet
+- `docs/concept-graphic.md`: Guide du design system
+- `docs/implementation.md`: Plan d'implémentation détaillé
+- `CLAUDE.md`: Directives pour l'IA
+
+## 🌐 Déploiement
+
+Le projet est configuré pour être déployé sur Vercel :
+
+1. Créer un projet Vercel
+2. Connecter le repository GitHub
+3. Configurer les variables d'environnement
+4. Déployer
+
+## 📋 Roadmap
+
+Voir `docs/implementation.md` pour le plan détaillé des tâches.
+
+### Phase 1 (En cours)
+
+- [x] Setup infrastructure (Next.js, Tailwind, Prisma)
+- [x] Design system et composants UI de base
+- [x] Layout principal et navigation
+- [ ] Pages publiques (Fictions, Musiques)
+- [ ] Interface admin
+- [ ] Authentification
+
+### Phases Suivantes
+
+- Gestion de contenu (CRUD fictions/chapitres/musiques)
+- Upload de fichiers (images, audio)
+- Lecteur audio sticky
+- Tests et optimisations
+- Lancement
+
+## 🤝 Contribution
+
+Ce projet est personnel. Les contributions externes ne sont pas acceptées pour le moment.
+
+## 📄 Licence
+
+Tous droits réservés © 2024 Noctalys
+
+---
+
+**Créé avec ✦ par Noctalys**

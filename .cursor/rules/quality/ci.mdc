@@ -1,0 +1,157 @@
+---
+id: quality/ci
+category: quality
+title: Pipeline CI/CD GitHub Actions
+status: draft
+tags: [quality, ci-cd, github-actions, automation]
+---
+
+# Pipeline CI/CD GitHub Actions
+
+**Objectif** : Documenter le pipeline CI/CD GitHub Actions pour automatiser les vérifications de qualité et garantir un code fiable avant le déploiement.
+**Contexte** : À appliquer pour assurer la qualité et la fiabilité du code.
+
+## Explication
+
+Le pipeline CI/CD avec GitHub Actions vérifie automatiquement la qualité du code à chaque push ou pull request. Il remplace les pre-commit hooks locaux (Husky, lint-staged) en centralisant les vérifications dans un environnement contrôlé.
+
+**Étapes du pipeline :**
+
+1. **Installation** : installation des dépendances (`npm ci`)
+2. **Linting** : vérification ESLint (`npm run lint`)
+3. **Formatage** : vérification Prettier (`npm run format:check`)
+4. **Tests** : exécution des tests avec couverture (`npm run test:coverage`)
+5. **Build** : compilation du projet (`npm run build`)
+
+**Déclencheurs :**
+
+* **Push** : sur toutes les branches
+* **Pull Request** : vers `main` ou `dev`
+* **Workflow dispatch** : déclenchement manuel
+
+**Avantages du CI vs Pre-commit hooks :**
+
+* **Environnement standardisé** : même version Node, même configuration
+* **Impossible à contourner** : le code non conforme ne peut pas être mergé
+* **Feedback centralisé** : visibilité pour toute l'équipe
+* **Pas de dépendance locale** : pas besoin de Husky, lint-staged
+
+**Bonnes pratiques :**
+
+* Échec du pipeline si une étape échoue (pas de warning ignoré)
+* Cache des dépendances pour accélérer les builds
+* Notifications en cas d'échec (Slack, Discord, email)
+* Parallélisation des jobs indépendants si possible
+* Tests de couverture avec seuils minimaux (80 %)
+
+**Règles d'or :**
+
+* **Jamais de commit si le CI échoue**
+* **Jamais de merge si le CI est rouge**
+* **Investiguer immédiatement les échecs**
+* **Maintenir le pipeline rapide** (< 5 minutes idéalement)
+
+## Exemple de mise en pratique
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Build project
+        run: npm run build
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: true
+
+# package.json (scripts requis)
+{
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx",
+    "format:check": "prettier --check .",
+    "test:coverage": "vitest run --coverage",
+    "build": "next build"
+  }
+}
+```
+
+**Configuration des branch protection rules (GitHub) :**
+
+```
+Settings > Branches > Branch protection rules > main
+
+☑ Require status checks to pass before merging
+  ☑ quality / quality (20)
+☑ Require branches to be up to date before merging
+☑ Do not allow bypassing the above settings
+```
+
+**Notifications Slack (optionnel) :**
+
+```yaml
+# Ajouter à la fin du job
+- name: Notify Slack on failure
+  if: failure()
+  uses: slackapi/slack-github-action@v1
+  with:
+    webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+    payload: |
+      {
+        "text": "❌ CI failed on ${{ github.repository }}: ${{ github.event.head_commit.message }}"
+      }
+```
+
+## Variantes ou exceptions
+
+* Pour des projets monorepo, utiliser des jobs multiples avec des filtres de path
+* Pour des projets avec backend + frontend, séparer les pipelines
+* Pour des projets très lents, paralléliser les jobs (lint + format en parallèle de test)
+* Certains projets peuvent nécessiter des étapes supplémentaires (migration DB, seed, etc.)
+
+## Liens / Références
+
+* https://docs.github.com/en/actions
+* https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+* https://github.com/actions/setup-node
+* https://github.com/codecov/codecov-action
+* Documentation interne : `/docs/ci-cd.md`

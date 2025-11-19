@@ -1,0 +1,209 @@
+---
+id: utils/strings
+category: utils
+title: Helpers pour chaînes de caractères
+status: draft
+tags: [utils, strings, text, manipulation]
+---
+
+# Helpers pour chaînes de caractères
+
+**Objectif** : Standardiser les helpers de manipulation de chaînes de caractères pour garantir cohérence et réutilisabilité.
+**Contexte** : À appliquer pour standardiser les helpers et fonctions partagées.
+
+## Explication
+
+Les helpers de manipulation de chaînes sont parmi les plus utilisés dans une application. Ils doivent être performants, bien testés et couvrir les cas d'usage courants.
+
+**Fonctions courantes :**
+
+* **slugify** : convertir en slug URL-friendly
+* **capitalize** : mettre la première lettre en majuscule
+* **truncate** : tronquer avec ellipse
+* **removeAccents** : retirer les accents
+* **camelCase / kebabCase / snakeCase** : conversions de casse
+* **stripHtml** : retirer les balises HTML
+* **escapeHtml** : échapper les caractères HTML
+
+**Principes :**
+
+* Fonctions pures sans effets de bord
+* Gestion des cas limites (chaînes vides, null, undefined)
+* Support Unicode et accents
+* Performance optimisée (éviter les regex complexes si possible)
+* Tests exhaustifs
+
+## Exemple de mise en pratique
+
+```ts
+// src/utils/strings/slugify.ts
+
+/**
+ * Convertit une chaîne en slug URL-friendly
+ * @param text - Texte à convertir
+ * @returns Slug en minuscules avec tirets
+ */
+export function slugify(text: string): string {
+  if (!text) return '';
+
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// src/utils/strings/capitalize.ts
+
+/**
+ * Met la première lettre en majuscule
+ * @param text - Texte à capitaliser
+ * @returns Texte avec première lettre en majuscule
+ */
+export function capitalize(text: string): string {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+// src/utils/strings/truncate.ts
+
+type TruncateOptions = {
+  length?: number;
+  suffix?: string;
+};
+
+/**
+ * Tronque une chaîne à une longueur donnée
+ * @param text - Texte à tronquer
+ * @param options - Options de troncature
+ * @returns Texte tronqué avec ellipse
+ */
+export function truncate(text: string, options: TruncateOptions = {}): string {
+  const { length = 50, suffix = '...' } = options;
+
+  if (!text || text.length <= length) return text;
+  return text.slice(0, length - suffix.length).trim() + suffix;
+}
+
+// src/utils/strings/remove-accents.ts
+
+/**
+ * Retire les accents d'une chaîne
+ * @param text - Texte avec accents
+ * @returns Texte sans accents
+ */
+export function removeAccents(text: string): string {
+  if (!text) return '';
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// src/utils/strings/to-kebab-case.ts
+
+/**
+ * Convertit une chaîne en kebab-case
+ * @param text - Texte à convertir
+ * @returns Texte en kebab-case
+ */
+export function toKebabCase(text: string): string {
+  if (!text) return '';
+
+  return text
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+}
+
+// src/utils/strings/to-camel-case.ts
+
+/**
+ * Convertit une chaîne en camelCase
+ * @param text - Texte à convertir
+ * @returns Texte en camelCase
+ */
+export function toCamelCase(text: string): string {
+  if (!text) return '';
+
+  return text
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase());
+}
+
+// src/utils/strings/strip-html.ts
+
+/**
+ * Retire les balises HTML d'une chaîne
+ * @param html - HTML à nettoyer
+ * @returns Texte sans balises HTML
+ */
+export function stripHtml(html: string): string {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+}
+
+// src/utils/strings/escape-html.ts
+
+/**
+ * Échappe les caractères spéciaux HTML
+ * @param text - Texte à échapper
+ * @returns Texte avec caractères HTML échappés
+ */
+export function escapeHtml(text: string): string {
+  if (!text) return '';
+
+  const htmlEscapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+
+  return text.replace(/[&<>"']/g, (char) => htmlEscapeMap[char]);
+}
+
+// src/utils/strings/index.ts
+export { slugify } from './slugify';
+export { capitalize } from './capitalize';
+export { truncate } from './truncate';
+export { removeAccents } from './remove-accents';
+export { toKebabCase } from './to-kebab-case';
+export { toCamelCase } from './to-camel-case';
+export { stripHtml } from './strip-html';
+export { escapeHtml } from './escape-html';
+
+// Tests
+// src/utils/strings/slugify.test.ts
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify';
+
+describe('slugify', () => {
+  it('should convert to lowercase with dashes', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('should remove accents', () => {
+    expect(slugify('Café Français')).toBe('cafe-francais');
+  });
+
+  it('should handle empty strings', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('should remove special characters', () => {
+    expect(slugify('Hello @World! #2025')).toBe('hello-world-2025');
+  });
+});
+```
+
+## Variantes ou exceptions
+
+* Pour des transformations complexes, utiliser des librairies spécialisées (lodash, ramda)
+* Les helpers de validation de format (email, URL) peuvent être dans `validators/`
+* Pour de l'internationalisation avancée, utiliser i18n
+
+## Liens / Références
+
+* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
+* https://unicode.org/reports/tr15/
+* Documentation interne : `/docs/utils.md`

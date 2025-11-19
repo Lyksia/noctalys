@@ -1,0 +1,206 @@
+---
+alwaysApply: false
+description: Define naming conventions (camelCase, PascalCase, kebab-case, etc.)
+---
+
+# Naming Conventions
+
+**Objective**: Standardize naming conventions to ensure consistency and readability throughout the codebase.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Respecting strict naming conventions facilitates reading, understanding, and code maintenance. Each type of element follows a specific convention.
+
+**Global rules:**
+
+| Element                  | Convention         | Examples                                    |
+| ------------------------ | ------------------ | ------------------------------------------- |
+| Variables / functions    | `camelCase`        | `userName`, `fetchData`, `isLoading`        |
+| React components         | `PascalCase`       | `CalendarGrid`, `UserProfile`, `Button`     |
+| Files                    | `kebab-case`       | `calendar-grid.tsx`, `user-profile.ts`      |
+| Feature folders          | Singular           | `calendar/`, `payment/` (not `calendars/`)  |
+| Hooks                    | Prefix `use`       | `useCalendar`, `useAuth`, `useLocalStorage` |
+| Constants                | `UPPER_SNAKE_CASE` | `MAX_FILE_SIZE`, `API_BASE_URL`             |
+| Types / Interfaces       | `PascalCase`       | `User`, `ApiResponse`, `CalendarEvent`      |
+| Enums                    | `PascalCase`       | `UserRole`, `PaymentStatus`                 |
+| Test files               | `.test.tsx`        | `calendar-grid.test.tsx`                    |
+| Private variables        | Prefix `_`         | `_internalState` (optional)                 |
+
+## Practical Implementation Example
+
+**Variables and functions:**
+
+```ts
+// ✅ Good: camelCase
+const userName = "John Doe";
+const isAuthenticated = true;
+const totalAmount = 100;
+
+function calculateTotal(items: Item[]): number {
+  return items.reduce((sum, item) => sum + item.price, 0);
+}
+
+// ❌ Bad: other conventions
+const UserName = "John Doe"; // PascalCase
+const is_authenticated = true; // snake_case
+const TotalAmount = 100; // PascalCase
+```
+
+**React components:**
+
+```tsx
+// ✅ Good: PascalCase
+export function UserProfile() {
+  return <div>Profile</div>;
+}
+
+export function CalendarGrid() {
+  return <div>Calendar</div>;
+}
+
+// ❌ Bad: other conventions
+export function userProfile() {} // camelCase
+export function user_profile() {} // snake_case
+```
+
+**Files:**
+
+```
+✅ Good: kebab-case
+- calendar-grid.tsx
+- user-profile.ts
+- payment-form.tsx
+- use-calendar.ts
+
+❌ Bad: other conventions
+- CalendarGrid.tsx (PascalCase)
+- user_profile.ts (snake_case)
+- paymentForm.tsx (camelCase)
+```
+
+**Hooks:**
+
+```ts
+// ✅ Good: prefix "use" + camelCase
+export function useCalendar() {
+  const [date, setDate] = useState(new Date());
+  return { date, setDate };
+}
+
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  return { user, setUser };
+}
+
+// ❌ Bad: without prefix "use"
+export function calendar() {} // Not a hook
+export function getAuth() {} // Not a hook
+```
+
+**Constants:**
+
+```ts
+// ✅ Good: UPPER_SNAKE_CASE
+export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+export const API_BASE_URL = "https://api.lyksia.com";
+export const DEFAULT_PAGE_SIZE = 20;
+
+// ❌ Bad: other conventions
+export const maxFileSize = 5 * 1024 * 1024; // camelCase
+export const apiBaseUrl = "https://api.lyksia.com"; // camelCase
+```
+
+**Types and Interfaces:**
+
+```ts
+// ✅ Good: PascalCase
+interface User {
+  id: string;
+  name: string;
+}
+
+type ApiResponse<T> = {
+  data: T;
+  success: boolean;
+};
+
+enum UserRole {
+  Admin = "ADMIN",
+  User = "USER",
+}
+
+// ❌ Bad: other conventions
+interface user {} // camelCase
+type apiResponse = {}; // camelCase
+```
+
+**Feature folders:**
+
+```
+✅ Good: singular
+- features/calendar/
+- features/payment/
+- features/user/
+
+❌ Bad: plural
+- features/calendars/
+- features/payments/
+- features/users/
+```
+
+**Booleans:**
+
+```ts
+// ✅ Good: prefixes is/has/should/can
+const isLoading = true;
+const hasPermission = false;
+const shouldRender = true;
+const canEdit = false;
+
+// ❌ Bad: without prefixes
+const loading = true;
+const permission = false;
+```
+
+**Event handlers:**
+
+```tsx
+// ✅ Good: prefix "handle"
+function handleClick() {
+  console.log("Clicked");
+}
+
+function handleSubmit(data: FormData) {
+  console.log("Submitted", data);
+}
+
+// Usage
+<button onClick={handleClick}>Click</button>
+<form onSubmit={handleSubmit}>...</form>
+```
+
+**Callback functions:**
+
+```ts
+// ✅ Good: prefix "on" for callback props
+interface ButtonProps {
+  onClick?: () => void;
+  onSubmit?: (data: FormData) => void;
+  onSuccess?: () => void;
+}
+
+// Usage
+<Button onClick={handleClick} onSuccess={handleSuccess} />
+```
+
+## Variants or Exceptions
+
+- Shadcn UI components follow their own convention (e.g. `button.tsx` in lowercase).
+- Next.js files (App Router) follow Next.js conventions (`page.tsx`, `layout.tsx`, `route.ts`).
+- Destructuring variables can be renamed: `const { id: userId } = user;`.
+
+## Links / References
+
+- Internal documentation: `references.md`

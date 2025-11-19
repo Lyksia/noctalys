@@ -1,0 +1,113 @@
+---
+id: ui/architecture
+category: ui
+title: Architecture du Design System
+status: draft
+tags: [ui, design-system, shadcn, tailwind, structure]
+alwaysApply: false
+description: Define the global structure of the design system
+---
+
+# Architecture du Design System
+
+**Objectif** : Définir la structure globale du design system et l'organisation des composants, styles et tokens UI.
+
+**Contexte** : À appliquer pour assurer la cohérence visuelle et fonctionnelle de l'interface.
+
+## Explication
+
+Le design system repose sur une architecture claire qui sépare :
+
+- **Les composants de base** (Shadcn UI) → composants primitifs, standardisés et accessibles
+- **Les composants custom** → extensions et variantes spécifiques au projet
+- **Les tokens de design** → valeurs centralisées (couleurs, espacements, radius, etc.)
+- **Les icônes** → bibliothèque Lucide React standardisée
+- **Les variantes** → logique de styles conditionnels via `cva()` et `clsx()`
+- **Le thème** → gestion du mode clair/sombre via Tailwind
+
+### Structure des dossiers
+
+```
+src/ui/
+ ├─ components/      # Composants Shadcn + custom
+ ├─ icons/           # Icônes Lucide centralisées
+ ├─ theme/           # Couleurs, typographie, tokens
+ ├─ variants/        # Fichiers cva/clsx
+ ├─ tokens/          # Espacements, radius, breakpoints
+ └─ docs/            # Documentation UI
+```
+
+### Principes fondamentaux
+
+1. **Cohérence** : Tous les composants suivent les mêmes conventions de nommage, structure et typage.
+2. **Accessibilité** : Conformité ARIA, gestion du focus, contrastes respectés.
+3. **Testabilité** : Chaque composant est testé unitairement.
+4. **Extensibilité** : Les composants Shadcn peuvent être étendus sans modification destructive.
+5. **Documentation** : Chaque composant UI possède un fichier Markdown dédié dans `ui/docs/`.
+
+### Technologies utilisées
+
+- **Shadcn UI** : Bibliothèque de composants de base
+- **Tailwind CSS** : Framework CSS utilitaire
+- **Lucide React** : Bibliothèque d'icônes
+- **cva (class-variance-authority)** : Gestion des variantes
+- **clsx** : Composition de classes conditionnelles
+- **Framer Motion** : Animations (optionnel)
+
+## Exemple de mise en pratique
+
+```ts
+// src/ui/components/button.tsx
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+export const Button = ({ className, variant, size, ...props }: ButtonProps) => {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
+```
+
+## Variantes ou exceptions
+
+- **Composants legacy** : Les composants existants peuvent être migrés progressivement vers cette architecture.
+- **Composants spécifiques** : Certains composants très spécifiques peuvent vivre dans les features plutôt que dans `ui/`.
+- **Animations complexes** : Pour des animations avancées, l'usage de Framer Motion est recommandé mais optionnel.
+
+## Liens / Références
+
+- [Shadcn UI](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lucide Icons](https://lucide.dev/)
+- [CVA Documentation](https://cva.style/docs)

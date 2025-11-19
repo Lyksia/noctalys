@@ -1,0 +1,228 @@
+---
+alwaysApply: false
+description: Code linting and formatting
+---
+
+# ESLint & Prettier
+
+**Objectif** : Standardiser le linting et le formatage du code pour garantir cohérence et qualité.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+ESLint est utilisé pour le linting (détection d'erreurs et mauvaises pratiques) et Prettier pour le formatage automatique du code.
+
+**Principes clés :**
+
+- **ESLint** : configurer les règles strictes pour éviter les erreurs.
+- **Prettier** : formater automatiquement le code de manière cohérente.
+- **Intégration** : combiner ESLint et Prettier sans conflits.
+- **CI/CD** : vérifier le linting et le formatage dans le pipeline CI.
+- **Pas de hooks Git** : pas de Husky/Lint-Staged, contrôle uniquement par CI.
+
+**Installation :**
+
+```bash
+npm install --save-dev eslint prettier eslint-config-prettier eslint-plugin-prettier
+```
+
+## Exemple de mise en pratique
+
+**Configuration ESLint :**
+
+```json
+// .eslintrc.json
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "react/prop-types": "off",
+    "react/react-in-jsx-scope": "off",
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
+  }
+}
+```
+
+**Configuration Prettier :**
+
+```json
+// .prettierrc
+{
+  "semi": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 160,
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}
+```
+
+**Ignore files :**
+
+```
+# .eslintignore
+node_modules/
+.next/
+out/
+dist/
+build/
+*.config.js
+```
+
+```
+# .prettierignore
+node_modules/
+.next/
+out/
+dist/
+build/
+package-lock.json
+pnpm-lock.yaml
+```
+
+**Scripts npm :**
+
+```json
+// package.json
+{
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+  }
+}
+```
+
+**VSCode settings :**
+
+```json
+// .vscode/settings.json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ]
+}
+```
+
+**CI/CD (GitHub Actions) :**
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm install
+      - run: npm run lint
+      - run: npm run format:check
+```
+
+**Règles ESLint personnalisées :**
+
+```json
+// .eslintrc.json
+{
+  "rules": {
+    // Forcer l'utilisation de const
+    "prefer-const": "error",
+
+    // Interdire les any
+    "@typescript-eslint/no-explicit-any": "error",
+
+    // Forcer les imports triés
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "parent",
+          "sibling",
+          "index"
+        ],
+        "pathGroups": [
+          {
+            "pattern": "@/**",
+            "group": "internal"
+          }
+        ],
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
+      }
+    ],
+
+    // Détecter les variables non utilisées
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  }
+}
+```
+
+**Plugin ESLint personnalisé :**
+
+```bash
+npm install --save-dev eslint-plugin-react eslint-plugin-react-hooks
+```
+
+```json
+// .eslintrc.json
+{
+  "extends": [
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended"
+  ],
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}
+```
+
+## Variantes ou exceptions
+
+- Les projets existants peuvent avoir des configurations différentes, mais doivent converger vers cette norme.
+- Les équipes peuvent ajuster certaines règles selon leurs préférences.
+
+## Liens / Références
+
+- [ESLint Documentation](https://eslint.org/docs/latest/)
+- [Prettier Documentation](https://prettier.io/docs/en/)
+- [ESLint + Prettier](https://prettier.io/docs/en/integrating-with-linters.html)

@@ -1,0 +1,129 @@
+---
+alwaysApply: false
+description: Organize test files and folders
+---
+
+# Test folder structure
+
+**Objective**: Centralize **configuration** and **test utilities** (mocks, helpers, setup) in a dedicated folder.
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+The `test/` folder groups everything related to test configuration and utilities: Vitest setup, centralized mocks, test helpers, etc.
+
+Test files (`.test.tsx`) remain **next to the tested code** in the relevant features or folders.
+
+**Organization:**
+
+```
+src/test/
+ ├─ setup.ts            # Configuration Vitest et React Testing Library
+ ├─ utils/              # Helpers de test réutilisables
+ │   ├─ render.tsx      # Wrapper de render avec providers
+ │   ├─ factories.ts    # Factories pour générer des données de test
+ │   └─ index.ts
+ ├─ mocks/              # Mocks centralisés
+ │   ├─ handlers.ts     # Handlers MSW
+ │   ├─ server.ts       # Serveur MSW
+ │   └─ data.ts         # Données mockées
+ └─ index.ts            # Barrel pour exports
+```
+
+**Rules:**
+
+- Test files (`.test.tsx`) remain next to the tested code.
+- Centralized mocks are in `test/mocks/`.
+- Test helpers are in `test/utils/`.
+- Vitest configuration is in `test/setup.ts`.
+
+## Practical Implementation Example
+
+**Global structure:**
+
+```
+src/
+ ├─ features/
+ │   └─ calendar/
+ │       ├─ components/
+ │       │   ├─ calendar-grid.tsx
+ │       │   └─ calendar-grid.test.tsx    # Test à côté du composant
+ │       └─ hooks/
+ │           ├─ use-calendar.ts
+ │           └─ use-calendar.test.ts
+ └─ test/
+     ├─ setup.ts
+     ├─ utils/
+     │   └─ render.tsx
+     └─ mocks/
+         └─ handlers.ts
+```
+
+**Fichier `test/setup.ts` :**
+
+```ts
+import { expect, afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
+
+expect.extend(matchers);
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+**Fichier `test/utils/render.tsx` :**
+
+```ts
+import { render } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/react-query";
+
+export function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
+}
+```
+
+**Fichier `test/mocks/handlers.ts` :**
+
+```ts
+import { http, HttpResponse } from "msw";
+
+export const handlers = [
+  http.get("/api/users", () => {
+    return HttpResponse.json([
+      { id: "1", name: "John Doe", email: "john@example.com" },
+    ]);
+  }),
+];
+```
+
+**Import in a test:**
+
+```ts
+import { renderWithProviders } from "@/test/utils";
+import { CalendarGrid } from "./calendar-grid";
+
+describe("CalendarGrid", () => {
+  it("renders correctly", () => {
+    const { getByText } = renderWithProviders(<CalendarGrid />);
+    expect(getByText("Calendar")).toBeInTheDocument();
+  });
+});
+```
+
+## Variants or Exceptions
+
+- Projects without tests can omit this folder.
+- Mocks very specific to a feature can remain in `features/[name]/__mocks__/`.
+
+## Links / References
+
+- [Vitest Documentation](https://vitest.dev/)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [MSW (Mock Service Worker)](https://mswjs.io/)
+- Internal documentation: `references.md`

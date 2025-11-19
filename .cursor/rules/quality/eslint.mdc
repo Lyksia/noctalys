@@ -1,0 +1,161 @@
+---
+id: quality/eslint
+category: quality
+title: ESLint
+status: draft
+tags: [quality, eslint, linting, code-style]
+---
+
+# ESLint
+
+**Objectif** : Définir les règles ESLint pour garantir la cohérence et la qualité du code à travers tous les projets.
+**Contexte** : À appliquer pour assurer la qualité et la fiabilité du code.
+
+## Explication
+
+ESLint est l'outil de linting officiel pour garantir la cohérence du code JavaScript et TypeScript. Il détecte les erreurs potentielles, applique les conventions de code et améliore la lisibilité.
+
+**Configuration de base :**
+
+* **Extends** : configurations recommandées pour TypeScript, React, Next.js
+* **Plugins** : support de React Hooks, TypeScript, accessibilité
+* **Rules** : règles personnalisées adaptées au projet
+* **Ignores** : fichiers et dossiers exclus du linting
+
+**Règles essentielles :**
+
+* **TypeScript** : typage strict, interdiction de `any`, préférence pour les types explicites
+* **React** : règles des Hooks, props validation, interdiction des closures complexes
+* **Imports** : ordre des imports, interdiction des imports cycliques
+* **Qualité** : complexité cyclomatique limitée, fonctions courtes, nommage cohérent
+* **Sécurité** : interdiction de `eval`, `dangerouslySetInnerHTML` sans justification
+
+**Bonnes pratiques :**
+
+* Intégrer ESLint dans l'éditeur pour un feedback immédiat
+* Exécuter ESLint dans la CI/CD pour bloquer le code non conforme
+* Pas de Husky ou pre-commit hooks (contrôle par CI uniquement)
+* Configurer des règles d'avertissement pour les migrations progressives
+* Documenter les désactivations de règles avec `eslint-disable-next-line` + commentaire
+
+**Erreurs à éviter :**
+
+* Désactiver des règles sans justification
+* Ignorer des avertissements ESLint
+* Utiliser `any` au lieu de typage approprié
+* Ne pas configurer les règles spécifiques au projet
+* Accumuler de la dette technique en ignorant les warnings
+
+## Exemple de mise en pratique
+
+```js
+// .eslintrc.js
+module.exports = {
+  root: true,
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:jsx-a11y/recommended',
+    'next/core-web-vitals',
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
+  plugins: ['@typescript-eslint', 'react', 'jsx-a11y'],
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
+  rules: {
+    // TypeScript
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/consistent-type-imports': 'warn',
+
+    // React
+    'react/react-in-jsx-scope': 'off', // Next.js auto-import
+    'react/prop-types': 'off', // TypeScript
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'warn',
+
+    // Imports
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'prefer-const': 'error',
+    'no-var': 'error',
+
+    // Qualité
+    'max-lines': ['warn', { max: 300, skipBlankLines: true }],
+    'complexity': ['warn', 10],
+  },
+  ignorePatterns: [
+    'node_modules/',
+    'dist/',
+    'build/',
+    '.next/',
+    'coverage/',
+    '*.config.js',
+    '*.config.ts',
+  ],
+};
+
+// package.json
+{
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+  }
+}
+
+// Exemple de désactivation justifiée
+function DangerousComponent() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = fetchLegacyData(); // TODO: typer correctement après migration API
+
+  return <div>{data.name}</div>;
+}
+```
+
+**Intégration VSCode (`.vscode/settings.json`) :**
+
+```json
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ]
+}
+```
+
+## Variantes ou exceptions
+
+* Pour des projets legacy, migrer progressivement en utilisant des warnings au lieu d'erreurs
+* Les fichiers de configuration peuvent avoir des règles assouplies
+* Les scripts de build peuvent être exclus du linting
+* Pour du code généré (Prisma client, etc.), toujours exclure du linting
+
+## Liens / Références
+
+* https://eslint.org/docs/latest/
+* https://typescript-eslint.io/
+* https://nextjs.org/docs/basic-features/eslint
+* https://github.com/jsx-eslint/eslint-plugin-jsx-a11y
+* Documentation interne : `/docs/code-quality.md`

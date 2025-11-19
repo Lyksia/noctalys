@@ -1,0 +1,108 @@
+---
+id: deployment/architecture
+category: deployment
+title: Architecture CI/CD
+status: draft
+tags: [ci, cd, architecture, workflow, vercel]
+---
+
+# Architecture CI/CD
+
+**Objective**: Define the overall structure of continuous integration and deployment (CI/CD) via GitHub Actions and Vercel.
+**Context**: To be applied for deployment and continuous integration stages.
+
+## Explanation
+
+The CI/CD architecture relies on two complementary pillars:
+
+1. **GitHub Actions**: Verifies code quality (lint, format, tests, build) on every push/PR.
+2. **Vercel**: Automatically deploys code based on the branch (production, staging, preview).
+
+**Complete pipeline:**
+
+```
+Push/PR → GitHub Actions → [lint, format, test, build] → Merge → Vercel → Deploy
+```
+
+**Key principles:**
+- No local Git hooks (no Husky/lint-staged): control only in CI.
+- CI errors block the merge.
+- Vercel triggers automatically after merge.
+- Each environment (dev, preview, prod) has its own environment variables.
+
+**GitHub Actions Workflow:**
+- File: `.github/workflows/ci.yml`
+- Steps: `install` → `lint` → `prettier --check` → `test` → `build`
+- Execution: on all branches, on every push and PR.
+
+**Vercel Deployment:**
+- `main` → production
+- `dev` → staging
+- `feature/*` → preview (temporary URL)
+
+## Practical Implementation Example
+
+**File structure:**
+
+```
+.github/
+└── workflows/
+    └── ci.yml
+
+.vercelignore
+vercel.json
+.env.example
+.env.local (gitignored)
+```
+
+**Minimal CI workflow:**
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
+```
+
+**Vercel Configuration:**
+
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm ci"
+}
+```
+
+## Variants or Exceptions
+
+- **Monorepo**: Adapt the workflow with path filters and conditional jobs.
+- **Matrix builds**: Test on multiple Node versions if necessary.
+- **Parallel jobs**: Separate lint/test/build into distinct jobs to optimize time.
+- **Manual deployment**: Disable Vercel auto-deployments and trigger via CI.
+- **Other platforms**: Adapt for Netlify, Railway, etc.
+
+## Links / References
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Vercel Documentation](https://vercel.com/docs)
+- Internal documentation: `.cursor/docs/references.md`

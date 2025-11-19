@@ -1,0 +1,179 @@
+---
+id: docs/tasks
+category: docs
+title: Génération automatique de tasks.md
+status: draft
+tags: [documentation, project, tasks, checklist, quality, generation]
+---
+
+# Génération automatique de tasks.md
+
+**Objectif** : Générer automatiquement un fichier `tasks.md` contenant la synthèse, les phases et la liste des tâches du projet à partir du fichier `PRD.md` et des éventuels documents complémentaires présents dans le dossier `docs`.  
+**Contexte** : À appliquer pour produire une feuille de route structurée et vérifiable, basée directement sur le contenu du PRD du projet.
+
+## Explication
+
+Le fichier `tasks.md` est **généré automatiquement à partir du `PRD.md`**, qui décrit la vision produit, les besoins fonctionnels et les phases du projet.  
+L’objectif de cette génération est d’obtenir un document **opérationnel, traçable et mesurable** à partir d’un document stratégique (le PRD).  
+
+La logique de génération repose sur une série d’étapes systématiques :
+
+### 1. Extraction de la synthèse
+
+L’IA lit les premières sections du `PRD.md` :
+- **Objectifs du projet**
+- **Contexte et attentes**
+- **Contraintes principales (techniques ou métiers)**  
+
+Ces éléments sont résumés dans la première section du `tasks.md` sous le titre :  
+`# Synthèse du projet`
+
+---
+
+### 2. Identification des phases
+
+L’IA parcourt le `PRD.md` et repère les **phases définies explicitement** (ex. : `## Phase 1 – Conception`, `## Phase 2 – Développement`, etc.).  
+Chaque phase devient une section de niveau 2 dans le fichier `tasks.md` :
+
+```md
+## Phase 1 – Conception
+````
+
+Les phases sont listées dans le même ordre que dans le PRD.
+Aucune phase n’est inventée ou déduite : la structure du `tasks.md` doit refléter strictement la hiérarchie du PRD.
+
+---
+
+### 3. Extraction et conversion des fonctionnalités en tâches
+
+Pour chaque phase, l’IA identifie les **objectifs, fonctionnalités ou livrables** listés dans le PRD (sections, puces, ou sous-sections).
+Chaque élément est transformé en **tâche** sous forme de case à cocher :
+
+```md
+[ ] Créer la page de connexion
+```
+
+Les exigences associées à cette fonctionnalité sont extraites ou reformulées à partir du contenu du PRD :
+
+* critères d’acceptation
+* conditions de validation
+* dépendances techniques
+* exigences de test
+
+Chaque tâche comprend un bloc “Exigences” placé immédiatement en dessous :
+
+```md
+[ ] Créer la page de connexion  
+Exigences : authentification via JWT, testée avec React Testing Library, respect des normes d’accessibilité.
+```
+
+---
+
+### 4. Statut des tâches
+
+Le statut d’une tâche peut être inféré de manière semi-automatique selon :
+
+* la présence d’un mot-clé “terminé”, “implémenté”, “validé” dans le PRD ;
+* ou d’un historique versionné dans la documentation.
+
+Exemple :
+
+```md
+[x] Configurer Prisma < tâche terminée
+```
+
+À défaut d’indication explicite, toutes les tâches sont générées avec le statut `[ ]` par défaut.
+
+---
+
+### 5. Détermination de l’état des phases
+
+Une phase est considérée comme **terminée** si toutes les tâches qu’elle contient sont marquées `[x]`.
+Cette vérification peut être automatisée (script ou règle IA secondaire).
+Le résumé de phase peut inclure un indicateur global d’avancement :
+
+```md
+✅ Phase terminée  
+ou  
+⏳ Phase en cours
+```
+
+---
+
+### 6. Génération finale du document
+
+L’IA compile les éléments extraits pour produire un `tasks.md` structuré comme suit :
+
+```md
+# Synthèse du projet
+[résumé généré automatiquement]
+
+---
+
+## Phase 1 – [Nom de la phase]
+[liste des tâches + exigences]
+
+## Phase 2 – [Nom de la phase]
+[liste des tâches + exigences]
+
+---
+
+# Suivi de progression
+[x] Phase 1 – terminée  
+[ ] Phase 2 – en cours  
+[ ] Phase 3 – à faire
+```
+
+---
+
+### 7. Rafraîchissement automatique
+
+Lorsqu’une nouvelle version du PRD est mise à jour, l’IA peut régénérer `tasks.md` :
+
+* en conservant les statuts déjà cochés `[x]` si la tâche correspondante n’a pas changé ;
+* en ajoutant ou supprimant automatiquement les tâches modifiées ou nouvelles.
+
+---
+
+## Exemple de mise en pratique
+
+```md
+# Synthèse du projet
+
+Outil métier pour gérer automatiquement les workflows internes.  
+Objectifs : automatiser, fiabiliser et tracer les étapes du processus.
+
+---
+
+## Phase 1 – Modélisation
+
+[x] Définir les entités principales < tâche terminée  
+Exigences : schémas Zod validés, relations Prisma cohérentes, migrations sans erreurs.  
+
+[ ] Créer la base PostgreSQL  
+Exigences : connexion fonctionnelle, tables générées, seed exécuté avec succès.
+
+---
+
+## Phase 2 – Développement front
+
+[ ] Implémenter la page Dashboard  
+Exigences : composants réutilisables, appels API via React Query, tests Vitest validés.
+```
+
+---
+
+## Variantes ou exceptions
+
+* Si le `PRD.md` ne contient pas de structure de phases claire, l’IA doit interrompre la génération et suggérer une normalisation du PRD.
+* Si plusieurs documents (ex. `workflow.md`, `api.md`) complètent le PRD, ils peuvent être analysés en complément pour enrichir la génération des tâches.
+* Les projets mono-phase (ex. : MVP rapide) peuvent omettre la hiérarchie de phase et lister directement les tâches.
+
+---
+
+## Liens / Références
+
+* Documentation interne : `/docs/PRD.md`
+* Bonnes pratiques Markdown : [https://www.markdownguide.org/](https://www.markdownguide.org/)
+* Gestion de projet : [https://www.scrum.org/resources/what-is-scrum](https://www.scrum.org/resources/what-is-scrum)
+* Exemple d’automatisation IA : `/scripts/generate-tasks-from-prd.ts`

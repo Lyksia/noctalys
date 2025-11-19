@@ -1,0 +1,209 @@
+---
+id: utils/logger
+category: utils
+title: Helpers pour les logs (optionnel)
+status: draft
+tags: [utils, logger, logging, debugging, monitoring]
+---
+
+# Helpers pour les logs (optionnel)
+
+**Objectif** : Standardiser le logging pour faciliter le debugging et le monitoring.
+**Contexte** : À appliquer pour standardiser les helpers et fonctions partagées.
+
+## Explication
+
+Un système de logging structuré facilite le debugging en développement et le monitoring en production. Les helpers de logging doivent être simples, configurables et compatibles avec les outils de monitoring (Sentry, Datadog).
+
+**Principes :**
+
+* Niveaux de log : `debug`, `info`, `warn`, `error`
+* Logs structurés (JSON en production)
+* Contexte enrichi (userId, requestId, etc.)
+* Pas de logs sensibles (passwords, tokens)
+* Intégration avec les outils de monitoring
+
+**Quand logger :**
+
+* **error** : erreurs critiques nécessitant une action
+* **warn** : situations anormales mais gérées
+* **info** : événements importants (connexion, paiement)
+* **debug** : informations de debugging (développement uniquement)
+
+## Exemple de mise en pratique
+
+```ts
+// src/utils/logger/logger.ts
+
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+type LogContext = Record<string, any>;
+
+class Logger {
+  private isDevelopment: boolean;
+
+  constructor() {
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+  }
+
+  /**
+   * Logs de debugging (développement uniquement)
+   */
+  debug(message: string, context?: LogContext): void {
+    if (this.isDevelopment) {
+      console.log(`[DEBUG] ${message}`, context || '');
+    }
+  }
+
+  /**
+   * Logs d'information
+   */
+  info(message: string, context?: LogContext): void {
+    if (this.isDevelopment) {
+      console.info(`[INFO] ${message}`, context || '');
+    } else {
+      this.logStructured('info', message, context);
+    }
+  }
+
+  /**
+   * Logs d'avertissement
+   */
+  warn(message: string, context?: LogContext): void {
+    if (this.isDevelopment) {
+      console.warn(`[WARN] ${message}`, context || '');
+    } else {
+      this.logStructured('warn', message, context);
+    }
+  }
+
+  /**
+   * Logs d'erreur
+   */
+  error(message: string, error?: Error, context?: LogContext): void {
+    if (this.isDevelopment) {
+      console.error(`[ERROR] ${message}`, error || '', context || '');
+    } else {
+      this.logStructured('error', message, {
+        ...context,
+        error: error?.message,
+        stack: error?.stack,
+      });
+    }
+
+    // Envoyer à Sentry en production
+    if (!this.isDevelopment && error) {
+      // Sentry.captureException(error, { extra: context });
+    }
+  }
+
+  /**
+   * Log structuré (JSON) pour la production
+   */
+  private logStructured(level: LogLevel, message: string, context?: LogContext): void {
+    const log = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      ...context,
+    };
+    console.log(JSON.stringify(log));
+  }
+}
+
+export const logger = new Logger();
+
+// src/utils/logger/with-request-logging.ts
+import { logger } from './logger';
+
+/**
+ * Middleware pour logger les requêtes API
+ */
+export function withRequestLogging<T extends (...args: any[]) => any>(
+  handler: T,
+  name: string
+): T {
+  return (async (...args: Parameters<T>) => {
+    const startTime = Date.now();
+    logger.info(`[${name}] Début de la requête`);
+
+    try {
+      const result = await handler(...args);
+      const duration = Date.now() - startTime;
+      logger.info(`[${name}] Requête réussie`, { duration });
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error(`[${name}] Requête échouée`, error as Error, { duration });
+      throw error;
+    }
+  }) as T;
+}
+
+// src/utils/logger/index.ts
+export { logger } from './logger';
+export { withRequestLogging } from './with-request-logging';
+
+// Usage dans le code
+
+import { logger } from '@/utils/logger';
+
+// Logs de debugging
+logger.debug('État du composant', { count: 5, userId: '123' });
+
+// Logs d'information
+logger.info('Utilisateur connecté', { userId: user.id, email: user.email });
+
+// Logs d'avertissement
+logger.warn('Tentative de connexion échouée', { email, attempts: 3 });
+
+// Logs d'erreur
+try {
+  await fetchUsers();
+} catch (error) {
+  logger.error('Échec du fetch des utilisateurs', error as Error, {
+    endpoint: '/api/users',
+  });
+}
+
+// Wrapper de fonction avec logging
+import { withRequestLogging } from '@/utils/logger';
+
+export const getUsers = withRequestLogging(
+  async () => {
+    return await db.user.findMany();
+  },
+  'getUsers'
+);
+
+// API Route avec logging
+// app/api/users/route.ts
+import { logger } from '@/utils/logger';
+
+export async function GET() {
+  logger.info('GET /api/users - Début');
+
+  try {
+    const users = await db.user.findMany();
+    logger.info('GET /api/users - Succès', { count: users.length });
+    return Response.json(users);
+  } catch (error) {
+    logger.error('GET /api/users - Erreur', error as Error);
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+```
+
+## Variantes ou exceptions
+
+* Pour des applications simples, `console.log` peut suffire
+* Pour des apps critiques, intégrer Sentry, Datadog ou LogRocket
+* Les logs côté client doivent être minimaux (vie privée, performance)
+* En développement, des logs verbeux sont acceptables
+
+## Liens / Références
+
+* https://www.npmjs.com/package/pino
+* https://www.npmjs.com/package/winston
+* https://sentry.io/
+* Documentation interne : `/docs/logging.md`

@@ -1,0 +1,197 @@
+---
+alwaysApply: false
+description: Schema validation and typing
+---
+
+# Zod
+
+**Objective**: Standardize Zod usage for schema validation and typing.
+
+**Context**: To apply for standardizing the use of this technology in projects.
+
+## Explanation
+
+Zod is the validation and typing library used for all projects. It validates incoming data (forms, API) and ensures consistency with TypeScript.
+
+**Key Principles:**
+
+- **Systematic validation**: always validate external data (forms, API).
+- **Schema-first**: define Zod schemas before TypeScript types.
+- **Type inference**: use `z.infer<>` to generate TypeScript types.
+- **Reusability**: centralize shared schemas in `lib/zod.ts`.
+- **Error messages**: customize error messages for UX.
+
+**Installation :**
+
+```bash
+npm install zod
+```
+
+## Practical Implementation Example
+
+**Simple schema:**
+
+```ts
+// src/features/users/schemas.ts
+import { z } from "zod";
+
+export const userSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  age: z.number().min(18, "Must be at least 18 years old").optional(),
+});
+
+// TypeScript type inference
+export type User = z.infer<typeof userSchema>;
+```
+
+**Schema with custom validation:**
+
+```ts
+import { z } from "zod";
+
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+export const signupSchema = z
+  .object({
+    email: z.string().email(),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+```
+
+**Validation de formulaire (React Hook Form) :**
+
+```tsx
+// src/features/auth/components/signup-form.tsx
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signupSchema } from "../schemas";
+import type { z } from "zod";
+
+type SignupFormData = z.infer<typeof signupSchema>;
+
+export function SignupForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+  });
+
+  const onSubmit = (data: SignupFormData) => {
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("email")} type="email" placeholder="Email" />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input {...register("password")} type="password" placeholder="Password" />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <input
+        {...register("confirmPassword")}
+        type="password"
+        placeholder="Confirm Password"
+      />
+      {errors.confirmPassword && <span>{errors.confirmPassword.message}</span>}
+
+      <button type="submit">Sign Up</button>
+    </form>
+  );
+}
+```
+
+**Validation API (Next.js Route Handler) :**
+
+```ts
+// app/api/users/route.ts
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const createUserSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+});
+
+export async function POST(request: Request) {
+  const body = await request.json();
+
+  // Validation
+  const result = createUserSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: result.error.format() },
+      { status: 400 }
+    );
+  }
+
+  // Validated data
+  const { name, email } = result.data;
+
+  // Create user
+  const user = await createUser({ name, email });
+
+  return NextResponse.json(user, { status: 201 });
+}
+```
+
+**Reusable schemas:**
+
+```ts
+// src/lib/zod.ts
+import { z } from "zod";
+
+export const emailSchema = z.string().email("Invalid email address");
+export const phoneSchema = z.string().regex(/^\+?[0-9]{10,15}$/, "Invalid phone number");
+export const urlSchema = z.string().url("Invalid URL");
+export const uuidSchema = z.string().uuid("Invalid UUID");
+
+// Usable in other schemas
+export const contactSchema = z.object({
+  email: emailSchema,
+  phone: phoneSchema.optional(),
+});
+```
+
+**Data transformation:**
+
+```ts
+import { z } from "zod";
+
+export const userInputSchema = z.object({
+  name: z.string().trim().toLowerCase(),
+  age: z.string().transform((val) => parseInt(val, 10)),
+  createdAt: z.string().transform((val) => new Date(val)),
+});
+
+// Input: { name: "  John  ", age: "25", createdAt: "2024-01-01" }
+// Output: { name: "john", age: 25, createdAt: Date }
+```
+
+## Variants or Exceptions
+
+- Very simple projects without forms or API can do without Zod.
+- Very specific validations may require custom functions in addition to Zod.
+
+## Links / References
+
+- [Zod Documentation](https://zod.dev/)
+- [Zod + React Hook Form](https://react-hook-form.com/get-started#SchemaValidation)
+- [Zod Error Handling](https://zod.dev/ERROR_HANDLING)

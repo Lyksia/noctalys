@@ -1,0 +1,271 @@
+---
+alwaysApply: false
+description: Prisma database conventions
+---
+
+# Prisma
+
+**Objectif** : Standardiser l'usage de Prisma pour la gestion de la base de données avec un schéma cohérent et des migrations sécurisées.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+Prisma est l'ORM utilisé pour tous les projets. Il fournit un schéma typé, des migrations automatiques et un client TypeScript généré.
+
+**Principes clés :**
+
+- **Schéma unique** : définir tout le schéma dans `prisma/schema.prisma`.
+- **Migrations** : utiliser les migrations Prisma pour toute modification de schéma.
+- **Client singleton** : créer une instance unique du client Prisma.
+- **Typage strict** : exploiter les types générés par Prisma.
+- **Seeds** : utiliser les seeds pour les données de test.
+
+**Installation :**
+
+```bash
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init
+```
+
+## Exemple de mise en pratique
+
+**Schéma Prisma :**
+
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(USER)
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+```
+
+**Client Prisma singleton :**
+
+```ts
+// src/lib/prisma.ts
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+```
+
+**Migrations :**
+
+```bash
+# Créer une migration
+npx prisma migrate dev --name add-user-model
+
+# Appliquer les migrations en production
+npx prisma migrate deploy
+
+# Reset la base de données (dev uniquement)
+npx prisma migrate reset
+```
+
+**Service de base de données :**
+
+```ts
+// src/features/users/services/users-db.ts
+import { prisma } from "@/lib/prisma";
+import type { User, Prisma } from "@prisma/client";
+
+export async function findAllUsers(): Promise<User[]> {
+  return prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function findUserById(id: string): Promise<User | null> {
+  return prisma.user.findUnique({
+    where: { id },
+    include: { posts: true },
+  });
+}
+
+export async function createUser(data: Prisma.UserCreateInput): Promise<User> {
+  return prisma.user.create({
+    data,
+  });
+}
+
+export async function updateUser(
+  id: string,
+  data: Prisma.UserUpdateInput
+): Promise<User> {
+  return prisma.user.update({
+    where: { id },
+    data,
+  });
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await prisma.user.delete({
+    where: { id },
+  });
+}
+```
+
+**Transactions :**
+
+```ts
+import { prisma } from "@/lib/prisma";
+
+export async function createUserWithPost(
+  userData: { email: string; name: string },
+  postData: { title: string; content: string }
+) {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: userData,
+    });
+
+    const post = await tx.post.create({
+      data: {
+        ...postData,
+        authorId: user.id,
+      },
+    });
+
+    return { user, post };
+  });
+}
+```
+
+**Seeds :**
+
+```ts
+// prisma/seed.ts
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  // Créer des utilisateurs de test
+  const alice = await prisma.user.upsert({
+    where: { email: "alice@example.com" },
+    update: {},
+    create: {
+      email: "alice@example.com",
+      name: "Alice",
+      role: "ADMIN",
+    },
+  });
+
+  const bob = await prisma.user.upsert({
+    where: { email: "bob@example.com" },
+    update: {},
+    create: {
+      email: "bob@example.com",
+      name: "Bob",
+      role: "USER",
+    },
+  });
+
+  console.log({ alice, bob });
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+```json
+// package.json
+{
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
+```
+
+```bash
+npx prisma db seed
+```
+
+**Requêtes complexes :**
+
+```ts
+import { prisma } from "@/lib/prisma";
+
+export async function findUsersWithPosts() {
+  return prisma.user.findMany({
+    where: {
+      posts: {
+        some: {
+          published: true,
+        },
+      },
+    },
+    include: {
+      posts: {
+        where: { published: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
+    },
+  });
+}
+```
+
+## Variantes ou exceptions
+
+- Les projets très simples sans base de données peuvent se passer de Prisma.
+- Les projets existants avec un autre ORM peuvent migrer progressivement vers Prisma.
+
+## Liens / Références
+
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Prisma Schema Reference](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference)
+- [Prisma Migrations](https://www.prisma.io/docs/concepts/components/prisma-migrate)

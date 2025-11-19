@@ -1,0 +1,233 @@
+---
+alwaysApply: false
+description: Unit and integration tests
+---
+
+# Vitest
+
+**Objectif** : Standardiser l'usage de Vitest pour les tests unitaires et d'intégration avec une configuration optimale pour Next.js et React.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+Vitest est le framework de test utilisé pour tous les projets. Il est rapide, compatible avec Vite et fournit une API similaire à Jest.
+
+**Principes clés :**
+
+- **Vitest** : pour tous les tests (unitaires et intégration).
+- **React Testing Library** : pour tester les composants React.
+- **Tests à côté du code** : fichiers `.test.tsx` à côté des fichiers testés.
+- **Coverage** : viser 80% de couverture minimum.
+- **Mocks centralisés** : dans `src/test/mocks/`.
+
+**Installation :**
+
+```bash
+npm install --save-dev vitest @testing-library/react @testing-library/jest-dom @vitejs/plugin-react jsdom
+```
+
+## Exemple de mise en pratique
+
+**Configuration Vitest :**
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "*.config.ts",
+        "**/*.d.ts",
+        "**/*.test.tsx",
+      ],
+    },
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+});
+```
+
+**Setup Vitest :**
+
+```ts
+// src/test/setup.ts
+import { expect, afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
+
+expect.extend(matchers);
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+**Test d'un composant :**
+
+```tsx
+// src/features/users/components/user-card.test.tsx
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { UserCard } from "./user-card";
+
+describe("UserCard", () => {
+  it("renders user name", () => {
+    render(<UserCard name="John Doe" email="john@example.com" />);
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+  });
+
+  it("renders user email", () => {
+    render(<UserCard name="John Doe" email="john@example.com" />);
+    expect(screen.getByText("john@example.com")).toBeInTheDocument();
+  });
+
+  it("renders avatar when provided", () => {
+    render(
+      <UserCard name="John Doe" email="john@example.com" avatar="avatar.jpg" />
+    );
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("src", "avatar.jpg");
+  });
+});
+```
+
+**Test avec interactions :**
+
+```tsx
+// src/features/counter/components/counter.test.tsx
+import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { Counter } from "./counter";
+
+describe("Counter", () => {
+  it("increments count on button click", () => {
+    render(<Counter />);
+    const button = screen.getByRole("button", { name: /increment/i });
+    const count = screen.getByText(/count: 0/i);
+
+    fireEvent.click(button);
+    expect(screen.getByText(/count: 1/i)).toBeInTheDocument();
+  });
+
+  it("starts with initial value", () => {
+    render(<Counter initialValue={10} />);
+    expect(screen.getByText(/count: 10/i)).toBeInTheDocument();
+  });
+});
+```
+
+**Test d'un hook :**
+
+```ts
+// src/features/auth/hooks/use-auth.test.ts
+import { describe, it, expect } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { useAuth } from "./use-auth";
+
+describe("useAuth", () => {
+  it("starts with no user", () => {
+    const { result } = renderHook(() => useAuth());
+    expect(result.current.user).toBeNull();
+  });
+
+  it("logs in user", () => {
+    const { result } = renderHook(() => useAuth());
+
+    act(() => {
+      result.current.login({ email: "john@example.com", password: "password" });
+    });
+
+    expect(result.current.user).toEqual({ email: "john@example.com" });
+  });
+});
+```
+
+**Test avec React Query :**
+
+```tsx
+// src/test/utils/render.tsx
+import { ReactElement } from "react";
+import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+export function renderWithProviders(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
+}
+```
+
+```tsx
+// src/features/users/components/user-list.test.tsx
+import { describe, it, expect, vi } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "@/test/utils/render";
+import { UserList } from "./user-list";
+
+vi.mock("../services/users-api", () => ({
+  fetchUsers: vi.fn(() =>
+    Promise.resolve([
+      { id: "1", name: "John", email: "john@example.com" },
+    ])
+  ),
+}));
+
+describe("UserList", () => {
+  it("displays users after loading", async () => {
+    renderWithProviders(<UserList />);
+
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("John")).toBeInTheDocument();
+    });
+  });
+});
+```
+
+**Scripts npm :**
+
+```json
+// package.json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  }
+}
+```
+
+## Variantes ou exceptions
+
+- Les projets très simples sans beaucoup de logique peuvent avoir moins de tests.
+- Les projets existants avec Jest peuvent migrer progressivement vers Vitest.
+
+## Liens / Références
+
+- [Vitest Documentation](https://vitest.dev/)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Vitest + Next.js](https://nextjs.org/docs/testing/vitest)

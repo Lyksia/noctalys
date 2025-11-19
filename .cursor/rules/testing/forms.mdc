@@ -1,0 +1,148 @@
+---
+id: testing/forms
+category: testing
+title: Tests de formulaires
+status: draft
+tags: [testing, forms, react-hook-form, zod, validation]
+---
+
+# Tests de formulaires
+
+**Objectif** : Définir les conventions pour tester les formulaires avec React Hook Form et Zod afin de garantir la validation et la soumission correctes.
+**Contexte** : À appliquer pour assurer la qualité et la fiabilité du code.
+
+## Explication
+
+Les formulaires sont des éléments critiques qui nécessitent une attention particulière lors des tests. Il faut vérifier la validation des champs, les messages d'erreur, les états de chargement et la soumission réussie.
+
+**Ce qu'on teste dans les formulaires :**
+
+* **Validation** : champs requis, formats, contraintes (min/max, regex)
+* **Messages d'erreur** : affichage correct des erreurs de validation Zod
+* **Soumission** : appel de la fonction onSubmit avec les bonnes données
+* **États** : désactivation du bouton pendant la soumission, affichage du loader
+* **Reset** : réinitialisation du formulaire après succès
+* **Accessibilité** : labels, rôles ARIA, focus management
+
+**Bonnes pratiques :**
+
+* Utiliser `userEvent` pour simuler les interactions réelles
+* Tester la validation côté client (Zod) sans mock
+* Mocker uniquement la fonction de soumission (API call)
+* Vérifier les messages d'erreur exacts
+* Tester les cas d'erreur serveur
+* Vérifier l'accessibilité (labels, messages d'erreur associés)
+
+**Erreurs à éviter :**
+
+* Ne pas tester uniquement les valeurs par défaut
+* Éviter de mocker React Hook Form ou Zod
+* Ne pas oublier les tests de validation côté serveur
+* Ne pas ignorer les états de chargement et d'erreur
+
+## Exemple de mise en pratique
+
+```tsx
+// src/features/auth/components/login-form.test.tsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { LoginForm } from './login-form';
+
+describe('LoginForm', () => {
+  it('should display validation errors for empty fields', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    // Soumettre sans remplir les champs
+    await user.click(screen.getByRole('button', { name: /connexion/i }));
+
+    // Vérifier les messages d'erreur
+    expect(await screen.findByText(/email requis/i)).toBeInTheDocument();
+    expect(await screen.findByText(/mot de passe requis/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('should display error for invalid email format', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/email/i), 'invalid-email');
+    await user.click(screen.getByRole('button', { name: /connexion/i }));
+
+    expect(await screen.findByText(/email invalide/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('should submit form with valid data', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue({ success: true });
+
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    // Remplir le formulaire
+    await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'SecurePass123!');
+    await user.click(screen.getByRole('button', { name: /connexion/i }));
+
+    // Vérifier l'appel avec les bonnes données
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        email: 'user@example.com',
+        password: 'SecurePass123!',
+      });
+    });
+  });
+
+  it('should disable submit button during submission', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'SecurePass123!');
+
+    const submitButton = screen.getByRole('button', { name: /connexion/i });
+    await user.click(submitButton);
+
+    // Bouton désactivé pendant la soumission
+    expect(submitButton).toBeDisabled();
+
+    // Bouton réactivé après la soumission
+    await waitFor(() => {
+      expect(submitButton).not.toBeDisabled();
+    });
+  });
+
+  it('should display server error message', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Identifiants invalides'));
+
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'WrongPass');
+    await user.click(screen.getByRole('button', { name: /connexion/i }));
+
+    expect(await screen.findByText(/identifiants invalides/i)).toBeInTheDocument();
+  });
+});
+```
+
+## Variantes ou exceptions
+
+* Pour des formulaires très simples (1-2 champs), des tests simplifiés peuvent suffire
+* Les formulaires multi-étapes nécessitent des tests d'intégration plus complexes
+* Pour des validations asynchrones (vérification d'email unique), utiliser `waitFor`
+
+## Liens / Références
+
+* https://react-hook-form.com/advanced-usage#TestingForm
+* https://testing-library.com/docs/ecosystem-user-event/
+* https://zod.dev/?id=testing
+* Documentation interne : `/test/README.md`

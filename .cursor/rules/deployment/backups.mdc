@@ -1,0 +1,238 @@
+---
+id: deployment/backups
+category: deployment
+title: Backups (optionnel)
+status: draft
+tags: [backups, database, postgresql, disaster-recovery]
+---
+
+# Backups (optionnel)
+
+**Objectif** : Gérer les sauvegardes de la base de données PostgreSQL et assurer la récupération en cas de disaster.
+**Contexte** : À appliquer pour les étapes de déploiement et intégration continue.
+
+## Explication
+
+Les backups sont critiques pour :
+- Récupération après une erreur humaine (suppression accidentelle).
+- Récupération après une panne infrastructure.
+- Migration vers un nouvel hébergeur.
+- Conformité légale (RGPD, etc.).
+
+**Types de backups :**
+
+| Type              | Fréquence           | Rétention      | Usage                          |
+| ----------------- | ------------------- | -------------- | ------------------------------ |
+| Automatique       | Toutes les heures   | 7 jours        | Récupération rapide            |
+| Daily             | 1x par jour         | 30 jours       | Point de restauration récent   |
+| Weekly            | 1x par semaine      | 90 jours       | Archive longue durée           |
+| Pre-deployment    | Avant chaque deploy | 7 jours        | Rollback en cas d'erreur       |
+
+**Services recommandés :**
+- **Vercel Postgres** : Backups automatiques inclus.
+- **Supabase** : Backups quotidiens (paid plans).
+- **Neon** : Point-in-time recovery (PITR).
+- **AWS RDS** : Backups automatiques configurables.
+- **Custom** : Scripts `pg_dump` + stockage S3.
+
+## Exemple de mise en pratique
+
+**Backup automatique avec pg_dump :**
+
+```bash
+#!/bin/bash
+# scripts/backup-db.sh
+
+# Variables
+DB_URL="${DATABASE_URL}"
+BACKUP_DIR="./backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql"
+
+# Créer le dossier si nécessaire
+mkdir -p ${BACKUP_DIR}
+
+# Backup
+pg_dump ${DB_URL} > ${BACKUP_FILE}
+
+# Compresser
+gzip ${BACKUP_FILE}
+
+# Uploader vers S3 (optionnel)
+aws s3 cp ${BACKUP_FILE}.gz s3://my-backups/postgres/
+
+# Nettoyer les anciens backups (garder 7 jours)
+find ${BACKUP_DIR} -type f -mtime +7 -delete
+
+echo "Backup completed: ${BACKUP_FILE}.gz"
+```
+
+**Automatisation avec cron :**
+
+```cron
+# Backup quotidien à 2h du matin
+0 2 * * * /app/scripts/backup-db.sh
+
+# Backup avant déploiement (via CI)
+```
+
+**Backup dans GitHub Actions (avant déploiement) :**
+
+```yaml
+name: Deploy with Backup
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  backup-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Backup Database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          pg_dump $DATABASE_URL | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+          aws s3 cp backup_*.sql.gz s3://my-backups/postgres/
+      
+      - name: Deploy to Vercel
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+```
+
+**Restauration depuis un backup :**
+
+```bash
+#!/bin/bash
+# scripts/restore-db.sh
+
+BACKUP_FILE=$1
+
+if [ -z "$BACKUP_FILE" ]; then
+  echo "Usage: ./restore-db.sh <backup-file>"
+  exit 1
+fi
+
+# Décompresser
+gunzip -c ${BACKUP_FILE} > /tmp/restore.sql
+
+# Restaurer (⚠️ écrase la base actuelle)
+psql ${DATABASE_URL} < /tmp/restore.sql
+
+# Nettoyer
+rm /tmp/restore.sql
+
+echo "Database restored from ${BACKUP_FILE}"
+```
+
+**Configuration Vercel Postgres (automatique) :**
+
+Vercel Postgres inclut des backups automatiques :
+- Backup toutes les heures
+- Rétention : 7 jours (Hobby), 30 jours (Pro)
+- Point-in-time recovery disponible
+
+```bash
+# Restaurer via CLI Vercel
+vercel postgres backup restore <backup-id>
+```
+
+**Configuration Supabase (automatique) :**
+
+```sql
+-- Backups quotidiens automatiques (Pro plan)
+-- Point-in-time recovery jusqu'à 7 jours
+
+-- Backup manuel via dashboard Supabase
+-- ou via CLI
+supabase db dump -f backup.sql
+```
+
+**Backup des fichiers/assets (S3/R2) :**
+
+```bash
+#!/bin/bash
+# scripts/backup-assets.sh
+
+# Sync vers backup bucket
+aws s3 sync s3://my-app-assets s3://my-app-backups/assets/$(date +%Y%m%d)/
+
+echo "Assets backup completed"
+```
+
+**Test de restauration (mensuel) :**
+
+```bash
+#!/bin/bash
+# scripts/test-restore.sh
+
+# 1. Créer une DB de test
+createdb test_restore
+
+# 2. Restaurer le dernier backup
+LATEST_BACKUP=$(ls -t backups/*.sql.gz | head -1)
+gunzip -c ${LATEST_BACKUP} | psql test_restore
+
+# 3. Vérifier l'intégrité
+psql test_restore -c "SELECT COUNT(*) FROM users;"
+psql test_restore -c "SELECT COUNT(*) FROM orders;"
+
+# 4. Nettoyer
+dropdb test_restore
+
+echo "Restore test completed successfully"
+```
+
+**Configuration recommandée :**
+
+```yaml
+# .github/workflows/backup.yml
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Tous les jours à 2h
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Backup to S3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          pg_dump $DATABASE_URL | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+          aws s3 cp backup_*.sql.gz s3://my-backups/postgres/
+          
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"❌ Database backup failed!"}'
+```
+
+## Variantes ou exceptions
+
+- **Backup incrémental** : Utiliser WAL (Write-Ahead Logging) pour des backups continus.
+- **Multi-région** : Répliquer les backups dans plusieurs régions AWS/GCP.
+- **Chiffrement** : Chiffrer les backups avant upload (`gpg --encrypt`).
+- **Retention policy** : Adapter selon les besoins légaux (RGPD = 3 ans minimum).
+- **Backup as code** : Utiliser Terraform pour gérer les politiques de backup.
+
+## Liens / Références
+
+- [PostgreSQL Backup and Restore](https://www.postgresql.org/docs/current/backup.html)
+- [Vercel Postgres Backups](https://vercel.com/docs/storage/vercel-postgres/usage-and-pricing#backups)
+- [Supabase Backups](https://supabase.com/docs/guides/platform/backups)
+- [AWS RDS Backups](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html)
+- Documentation interne : `.cursor/docs/references.md`

@@ -1,0 +1,174 @@
+---
+id: ui/docs
+category: ui
+title: Documentation UI
+status: draft
+tags: [documentation, ui, components, markdown]
+alwaysApply: false
+description: Document each UI component in a dedicated Markdown file
+---
+
+# Documentation UI
+
+**Objectif** : Documenter chaque composant UI dans un fichier Markdown dédié pour faciliter la maintenance et l'usage.
+
+**Contexte** : À appliquer pour assurer la cohérence visuelle et fonctionnelle de l'interface.
+
+## Explication
+
+Chaque composant UI doit avoir sa propre documentation qui explique :
+- Son usage et ses cas d'application
+- Ses props et variantes
+- Des exemples concrets
+- Les considérations d'accessibilité
+
+### Structure de documentation
+
+```
+src/ui/docs/
+ ├─ button.md
+ ├─ input.md
+ ├─ card.md
+ └─ ...
+```
+
+### Template de documentation
+
+```md
+# [Nom du composant]
+
+## Description
+
+[Brève description du composant et de son usage]
+
+## Import
+
+\`\`\`ts
+import { ComponentName } from "@/ui/components/component-name"
+\`\`\`
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| variant | "default" \| "secondary" | "default" | Style variant |
+| size | "sm" \| "md" \| "lg" | "md" | Size variant |
+| disabled | boolean | false | Disable state |
+
+## Variantes
+
+### Default
+[Description et exemple]
+
+### Secondary
+[Description et exemple]
+
+## Exemples
+
+### Usage basique
+\`\`\`tsx
+<ComponentName>Content</ComponentName>
+\`\`\`
+
+### Avec variantes
+\`\`\`tsx
+<ComponentName variant="secondary" size="lg">
+  Content
+</ComponentName>
+\`\`\`
+
+## Accessibilité
+
+- [Point d'accessibilité 1]
+- [Point d'accessibilité 2]
+
+## Notes
+
+- [Notes importantes ou limitations]
+```
+
+## Exemple de mise en pratique
+
+```md
+# Button
+
+## Description
+
+The Button component is used for user actions and navigation. It supports multiple variants, sizes, and states.
+
+## Import
+
+\`\`\`ts
+import { Button } from "@/ui/components/button"
+\`\`\`
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| variant | "default" \| "destructive" \| "outline" \| "ghost" | "default" | Visual style |
+| size | "default" \| "sm" \| "lg" \| "icon" | "default" | Button size |
+| asChild | boolean | false | Render as child element |
+| disabled | boolean | false | Disable button |
+
+## Variantes
+
+### Default
+Primary action button with solid background.
+
+### Destructive
+For dangerous or irreversible actions.
+
+### Outline
+Secondary actions with border.
+
+### Ghost
+Subtle actions without background.
+
+## Exemples
+
+### Usage basique
+\`\`\`tsx
+<Button>Click me</Button>
+\`\`\`
+
+### Avec icône
+\`\`\`tsx
+import { Save } from "lucide-react"
+
+<Button>
+  <Save className="mr-2 h-4 w-4" />
+  Save
+</Button>
+\`\`\`
+
+### Comme lien
+\`\`\`tsx
+<Button asChild>
+  <a href="/home">Go Home</a>
+</Button>
+\`\`\`
+
+## Accessibilité
+
+- Uses semantic `<button>` element
+- Supports keyboard navigation (Enter, Space)
+- Disabled state prevents interaction
+- Focus visible with ring
+
+## Notes
+
+- Use `asChild` when wrapping links
+- Destructive variant requires user confirmation
+```
+
+## Variantes ou exceptions
+
+- **Composants simples** : La documentation peut être plus légère.
+- **Composants complexes** : Ajouter une section "Architecture interne".
+- **Storybook** : La documentation Markdown peut compléter Storybook.
+
+## Liens / Références
+
+- [Markdown Guide](https://www.markdownguide.org/)
+- [Component Documentation Best Practices](https://designsystem.digital.gov/documentation/)

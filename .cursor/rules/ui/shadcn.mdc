@@ -1,0 +1,147 @@
+---
+id: ui/shadcn
+category: ui
+title: Intégration de Shadcn UI
+status: draft
+tags: [shadcn, ui, components, integration]
+alwaysApply: false
+description: Document Shadcn UI integration and customization
+---
+
+# Intégration de Shadcn UI
+
+**Objectif** : Documenter l'intégration et la personnalisation des composants Shadcn UI dans le projet.
+
+**Contexte** : À appliquer pour assurer la cohérence visuelle et fonctionnelle de l'interface.
+
+## Explication
+
+Shadcn UI n'est pas une bibliothèque de composants traditionnelle. C'est une collection de composants **réutilisables** que vous copiez directement dans votre projet.
+
+### Avantages de cette approche
+
+- **Contrôle total** : Les composants sont dans votre codebase, vous pouvez les modifier librement.
+- **Pas de dépendance externe** : Pas de problème de version ou de maintenance.
+- **Personnalisation native** : Extension facile sans wrapper ou configuration complexe.
+- **TypeScript natif** : Types générés automatiquement.
+
+### Installation d'un composant
+
+```bash
+npx shadcn-ui@latest add button
+```
+
+Cette commande :
+1. Copie le composant dans `src/ui/components/`
+2. Installe les dépendances nécessaires
+3. Configure les variantes et styles par défaut
+
+### Structure d'un composant Shadcn
+
+```
+src/ui/components/
+ ├─ button.tsx        # Composant Button avec variantes
+ ├─ input.tsx         # Composant Input
+ ├─ dialog.tsx        # Composant Dialog
+ └─ ...
+```
+
+Chaque composant :
+- Est **autonome** (1 fichier = 1 composant complet)
+- Utilise **cva** pour les variantes
+- Est **typé avec TypeScript**
+- Respecte les **conventions d'accessibilité ARIA**
+
+### Personnalisation
+
+#### 1. Modifier les variantes
+
+```ts
+// src/ui/components/button.tsx
+const buttonVariants = cva(
+  "base-classes",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground",
+        // Ajouter une nouvelle variante
+        brand: "bg-gradient-to-r from-blue-500 to-purple-600 text-white",
+      },
+    },
+  }
+)
+```
+
+#### 2. Étendre les props
+
+```ts
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  // Ajouter une prop custom
+  loading?: boolean
+}
+
+export const Button = ({ loading, children, ...props }: ButtonProps) => {
+  return (
+    <button {...props}>
+      {loading ? <Spinner /> : children}
+    </button>
+  )
+}
+```
+
+#### 3. Créer des composants composites
+
+```ts
+// src/ui/components/icon-button.tsx
+import { Button, type ButtonProps } from "./button"
+import { type LucideIcon } from "lucide-react"
+
+interface IconButtonProps extends ButtonProps {
+  icon: LucideIcon
+}
+
+export const IconButton = ({ icon: Icon, children, ...props }: IconButtonProps) => {
+  return (
+    <Button {...props}>
+      <Icon className="mr-2 h-4 w-4" />
+      {children}
+    </Button>
+  )
+}
+```
+
+## Exemple de mise en pratique
+
+```ts
+// Usage dans un composant
+import { Button } from "@/ui/components/button"
+import { Dialog, DialogContent, DialogTrigger } from "@/ui/components/dialog"
+
+export const UserProfile = () => {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open Profile</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <h2>User Profile</h2>
+        <p>Profile details here...</p>
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+## Variantes ou exceptions
+
+- **Composants complexes** : Pour des besoins très spécifiques, créer un composant custom plutôt que modifier Shadcn.
+- **Migration progressive** : Les composants peuvent être ajoutés au fur et à mesure des besoins.
+- **Versions** : Vérifier la compatibilité avec la version de Tailwind et React utilisée.
+
+## Liens / Références
+
+- [Shadcn UI Documentation](https://ui.shadcn.com/)
+- [Shadcn UI Components](https://ui.shadcn.com/docs/components)
+- [Installation Guide](https://ui.shadcn.com/docs/installation)

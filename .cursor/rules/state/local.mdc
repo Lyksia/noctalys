@@ -1,0 +1,385 @@
+---
+alwaysApply: false
+description: Best practices for local state (useState, useReducer)
+---
+
+# Local State
+
+**Objective**: Define best practices for managing local state with `useState` and `useReducer`.
+
+**Context**: To be applied to ensure consistency in state and data management.
+
+## Explanation
+
+Local state is state that belongs to a single component and is not shared. It should be managed with `useState` for simple cases and `useReducer` for complex cases.
+
+**When to use `useState`:**
+
+- Simple state (number, boolean, string)
+- Few interactions between states
+- Simple update logic
+
+**When to use `useReducer`:**
+
+- Complex state (object with multiple properties)
+- Multiple actions on the same state
+- Complex update logic
+- State with dependencies between values
+
+## Practical Implementation Example
+
+**useState - Simple state:**
+
+```tsx
+import { useState } from "react";
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  const increment = () => setCount((prev) => prev + 1);
+  const decrement = () => setCount((prev) => prev - 1);
+  const toggle = () => setIsVisible((prev) => !prev);
+
+  return (
+    <div>
+      {isVisible && <span>Count: {count}</span>}
+      <button onClick={increment}>+</button>
+      <button onClick={decrement}>-</button>
+      <button onClick={toggle}>Toggle</button>
+    </div>
+  );
+}
+```
+
+**useState - Object state (simple):**
+
+```tsx
+import { useState } from "react";
+
+interface FormData {
+  name: string;
+  email: string;
+  age: number;
+}
+
+export function SimpleForm() {
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    email: "",
+    age: 0,
+  });
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, name: e.target.value }));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, email: e.target.value }));
+  };
+
+  return (
+    <form>
+      <input value={formData.name} onChange={handleNameChange} />
+      <input value={formData.email} onChange={handleEmailChange} />
+    </form>
+  );
+}
+```
+
+**useReducer - Complex state:**
+
+```tsx
+import { useReducer } from "react";
+
+interface State {
+  count: number;
+  step: number;
+  isRunning: boolean;
+  history: number[];
+}
+
+type Action =
+  | { type: "INCREMENT" }
+  | { type: "DECREMENT" }
+  | { type: "SET_STEP"; payload: number }
+  | { type: "TOGGLE_RUNNING" }
+  | { type: "RESET" };
+
+const initialState: State = {
+  count: 0,
+  step: 1,
+  isRunning: false,
+  history: [0],
+};
+
+function counterReducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "INCREMENT": {
+      const newCount = state.count + state.step;
+      return {
+        ...state,
+        count: newCount,
+        history: [...state.history, newCount],
+      };
+    }
+    case "DECREMENT": {
+      const newCount = state.count - state.step;
+      return {
+        ...state,
+        count: newCount,
+        history: [...state.history, newCount],
+      };
+    }
+    case "SET_STEP":
+      return { ...state, step: action.payload };
+    case "TOGGLE_RUNNING":
+      return { ...state, isRunning: !state.isRunning };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
+export function AdvancedCounter() {
+  const [state, dispatch] = useReducer(counterReducer, initialState);
+
+  return (
+    <div>
+      <h1>Count: {state.count}</h1>
+      <p>Step: {state.step}</p>
+      <button onClick={() => dispatch({ type: "INCREMENT" })}>+</button>
+      <button onClick={() => dispatch({ type: "DECREMENT" })}>-</button>
+      <button onClick={() => dispatch({ type: "TOGGLE_RUNNING" })}>
+        {state.isRunning ? "Stop" : "Start"}
+      </button>
+      <button onClick={() => dispatch({ type: "RESET" })}>Reset</button>
+      <div>History: {state.history.join(", ")}</div>
+    </div>
+  );
+}
+```
+
+**useState with initialization function:**
+
+```tsx
+import { useState } from "react";
+
+// ✅ Good: expensive initialization with function
+function Component() {
+  const [data, setData] = useState(() => {
+    // This function only executes once
+    const stored = localStorage.getItem("data");
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  return <div>{data.length} items</div>;
+}
+
+// ❌ Bad: expensive initialization without function
+function ComponentBad() {
+  // This line executes on every render
+  const [data, setData] = useState(
+    localStorage.getItem("data") ? JSON.parse(localStorage.getItem("data")!) : []
+  );
+
+  return <div>{data.length} items</div>;
+}
+```
+
+**State update based on previous value:**
+
+```tsx
+import { useState } from "react";
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+
+  // ✅ Good: update function
+  const increment = () => setCount((prev) => prev + 1);
+
+  // ❌ Bad: direct reference (can cause bugs with rapid updates)
+  const incrementBad = () => setCount(count + 1);
+
+  return <button onClick={increment}>Count: {count}</button>;
+}
+```
+
+**State for toggle:**
+
+```tsx
+import { useState, useCallback } from "react";
+
+export function ToggleExample() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // ✅ Good: toggle with function
+  const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+
+  return (
+    <div>
+      <button onClick={toggle}>Toggle</button>
+      <button onClick={open}>Open</button>
+      <button onClick={close}>Close</button>
+      {isOpen && <div>Content</div>}
+    </div>
+  );
+}
+```
+
+**State with validation:**
+
+```tsx
+import { useState } from "react";
+
+export function ValidatedInput() {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setValue(newValue);
+
+    // Validation
+    if (newValue.length < 3) {
+      setError("Must be at least 3 characters");
+    } else {
+      setError(null);
+    }
+  };
+
+  return (
+    <div>
+      <input value={value} onChange={handleChange} />
+      {error && <span className="text-red-500">{error}</span>}
+    </div>
+  );
+}
+```
+
+**useReducer with middleware pattern:**
+
+```tsx
+import { useReducer, Reducer } from "react";
+
+type State = { count: number };
+type Action = { type: "INCREMENT" } | { type: "DECREMENT" };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "INCREMENT":
+      return { count: state.count + 1 };
+    case "DECREMENT":
+      return { count: state.count - 1 };
+    default:
+      return state;
+  }
+}
+
+// Middleware to log actions
+function withLogger<S, A>(reducer: Reducer<S, A>): Reducer<S, A> {
+  return (state: S, action: A): S => {
+    console.log("Action:", action);
+    console.log("Previous state:", state);
+    const nextState = reducer(state, action);
+    console.log("Next state:", nextState);
+    return nextState;
+  };
+}
+
+export function CounterWithLogger() {
+  const [state, dispatch] = useReducer(withLogger(reducer), { count: 0 });
+
+  return (
+    <div>
+      <p>Count: {state.count}</p>
+      <button onClick={() => dispatch({ type: "INCREMENT" })}>+</button>
+    </div>
+  );
+}
+```
+
+**Multiple related states:**
+
+```tsx
+import { useState, useEffect } from "react";
+
+// ❌ Bad: multiple useState for related state
+export function FormBad() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [isValid, setIsValid] = useState(false);
+
+  // Complex validation with multiple useEffect
+  useEffect(() => {
+    setIsValid(firstName.length > 0 && lastName.length > 0 && email.includes("@"));
+  }, [firstName, lastName, email]);
+}
+
+// ✅ Good: useReducer for related state
+interface FormState {
+  firstName: string;
+  lastName: string;
+  email: string;
+  isValid: boolean;
+}
+
+type FormAction =
+  | { type: "SET_FIRST_NAME"; payload: string }
+  | { type: "SET_LAST_NAME"; payload: string }
+  | { type: "SET_EMAIL"; payload: string };
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  let newState = { ...state };
+
+  switch (action.type) {
+    case "SET_FIRST_NAME":
+      newState.firstName = action.payload;
+      break;
+    case "SET_LAST_NAME":
+      newState.lastName = action.payload;
+      break;
+    case "SET_EMAIL":
+      newState.email = action.payload;
+      break;
+  }
+
+  // Centralized validation
+  newState.isValid = newState.firstName.length > 0 && newState.lastName.length > 0 && newState.email.includes("@");
+
+  return newState;
+}
+
+export function FormGood() {
+  const [state, dispatch] = useReducer(formReducer, {
+    firstName: "",
+    lastName: "",
+    email: "",
+    isValid: false,
+  });
+
+  return (
+    <form>
+      <input value={state.firstName} onChange={(e) => dispatch({ type: "SET_FIRST_NAME", payload: e.target.value })} />
+      <input value={state.lastName} onChange={(e) => dispatch({ type: "SET_LAST_NAME", payload: e.target.value })} />
+      <input value={state.email} onChange={(e) => dispatch({ type: "SET_EMAIL", payload: e.target.value })} />
+      <button disabled={!state.isValid}>Submit</button>
+    </form>
+  );
+}
+```
+
+## Variants or Exceptions
+
+- Simple forms can use `useState` with React Hook Form.
+- States shared between multiple components should use Context or React Query.
+
+## Links / References
+
+- [useState Hook](https://react.dev/reference/react/useState)
+- [useReducer Hook](https://react.dev/reference/react/useReducer)
+- Internal documentation: `references.md`

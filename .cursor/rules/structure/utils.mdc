@@ -1,0 +1,105 @@
+---
+alwaysApply: false
+description: Create a clear space for generic utilities
+---
+
+# Utils folder structure
+
+**Objective**: Group **pure**, **generic** functions **without third-party dependencies** in a dedicated and organized space.
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+The `utils/` folder contains **reusable** and **independent** functions: no imports of external libraries, no complex business logic.
+
+These functions are purely functional and can be tested in isolation.
+
+**Distinction `lib/` vs `utils/`:**
+
+| Folder   | Content                                                     | Dependencies |
+| -------- | ----------------------------------------------------------- | ------------ |
+| `lib/`   | Functions related to external libraries                     | Yes          |
+| `utils/` | Pure, reusable functions without third-party dependencies   | No           |
+
+**Organization by domain:**
+
+```
+src/utils/
+ ├─ strings/          # Helpers for strings
+ ├─ numbers/          # Helpers for numbers
+ ├─ dates/            # Helpers for dates (without date-fns)
+ ├─ objects/          # Helpers for objects
+ ├─ arrays/           # Helpers for arrays
+ ├─ formatters/       # Visual formatting helpers
+ ├─ errors/           # Error handling helpers
+ └─ index.ts          # Barrel for exports
+```
+
+**Conventions:**
+
+- 1 function = 1 file.
+- Always typed, tested, and documented.
+- No `any`, explicit names (`formatDate`, `slugify`, `capitalize`).
+- `index.ts` to group exports.
+
+## Practical Implementation Example
+
+**File `utils/strings/slugify.ts`:**
+
+```ts
+/**
+ * Converts a string to a URL-friendly slug.
+ * @param text - The text to slugify
+ * @returns The slugified text
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+```
+
+**File `utils/numbers/format-currency.ts`:**
+
+```ts
+/**
+ * Formats a number as currency.
+ * @param amount - The amount to format
+ * @param currency - The currency code (default: "EUR")
+ * @returns The formatted currency string
+ */
+export function formatCurrency(amount: number, currency = "EUR"): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+  }).format(amount);
+}
+```
+
+**File `utils/index.ts`:**
+
+```ts
+export { slugify } from "./strings/slugify";
+export { formatCurrency } from "./numbers/format-currency";
+export { capitalize } from "./strings/capitalize";
+```
+
+**Import from a feature:**
+
+```ts
+import { slugify, formatCurrency } from "@/utils";
+```
+
+## Variants or Exceptions
+
+- Functions with third-party dependencies (e.g., `date-fns`, `lodash`) should go in `lib/`.
+- Utilities specific to a feature should remain in `features/[name]/utils/`.
+
+## Links / References
+
+- [Functional Programming Principles](https://mostly-adequate.gitbook.io/mostly-adequate-guide/)
+- Internal documentation: `references.md`

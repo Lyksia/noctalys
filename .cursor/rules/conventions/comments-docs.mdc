@@ -1,0 +1,281 @@
+---
+alwaysApply: false
+description: Frame JSDoc and comments in code
+---
+
+# JSDoc and Comments
+
+**Objective**: Frame the use of JSDoc and comments in code to improve documentation without polluting readability.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Comments and JSDoc should be used sparingly. Clear and well-named code is preferable to excessive comments.
+
+**Rules:**
+
+- **JSDoc**: for public functions, utilities, and APIs.
+- **Comments**: only for complex or non-obvious logic.
+- **No obvious comments**: avoid comments that repeat the code.
+- **Language**: English only.
+- **Format**: follow standard JSDoc format.
+
+## Practical Implementation Example
+
+**JSDoc for public functions:**
+
+```ts
+/**
+ * Calculates the total price of items including tax.
+ * @param items - Array of items with prices
+ * @param taxRate - Tax rate as a decimal (e.g., 0.1 for 10%)
+ * @returns The total price including tax
+ * @throws {Error} If tax rate is negative
+ * @example
+ * ```ts
+ * const total = calculateTotal([{ price: 100 }], 0.1);
+ * // Returns 110
+ * ```
+ */
+export function calculateTotal(items: Array<{ price: number }>, taxRate: number): number {
+  if (taxRate < 0) {
+    throw new Error("Tax rate cannot be negative");
+  }
+
+  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  return subtotal * (1 + taxRate);
+}
+```
+
+**JSDoc for React components:**
+
+```tsx
+/**
+ * Button component with multiple variants and sizes.
+ *
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="lg" onClick={handleClick}>
+ *   Click me
+ * </Button>
+ * ```
+ */
+export function Button({ variant = "default", size = "md", children, ...props }: ButtonProps) {
+  return (
+    <button className={cn(buttonVariants({ variant, size }))} {...props}>
+      {children}
+    </button>
+  );
+}
+```
+
+**Comments for complex logic:**
+
+```ts
+export function processPayment(amount: number, userId: string) {
+  // Calculate fee based on progressive tiers
+  // 0-100: 2%, 101-500: 1.5%, 501+: 1%
+  let fee = 0;
+  if (amount <= 100) {
+    fee = amount * 0.02;
+  } else if (amount <= 500) {
+    fee = 100 * 0.02 + (amount - 100) * 0.015;
+  } else {
+    fee = 100 * 0.02 + 400 * 0.015 + (amount - 500) * 0.01;
+  }
+
+  // TODO: Implement retry logic for failed payments
+  return executePayment(amount + fee, userId);
+}
+```
+
+**TODO, FIXME, NOTE comments:**
+
+```ts
+export function syncData() {
+  // TODO: Add retry mechanism with exponential backoff
+  // FIXME: This fails when the API returns 429 (rate limit)
+  // NOTE: This function should only be called during off-peak hours
+
+  fetchDataFromAPI();
+}
+```
+
+**Comments for workarounds:**
+
+```ts
+export function sanitizeInput(input: string): string {
+  // Workaround for Safari bug with regex lookbehind
+  // See: https://bugs.webkit.org/show_bug.cgi?id=174931
+  if (isSafari()) {
+    return input.replace(/[<>]/g, "");
+  }
+
+  return input.replace(/(?<=<).*?(?=>)/g, "");
+}
+```
+
+**No obvious comments:**
+
+```ts
+// ❌ Bad: obvious comment
+// Increment the counter
+counter++;
+
+// Set the user name
+setUserName("John");
+
+// Return the result
+return result;
+
+// ✅ Good: no comment if the code is clear
+counter++;
+setUserName("John");
+return result;
+```
+
+**JSDoc for complex types:**
+
+```ts
+/**
+ * Configuration options for the API client.
+ */
+export interface ApiClientConfig {
+  /** Base URL for all API requests */
+  baseURL: string;
+
+  /** Request timeout in milliseconds */
+  timeout: number;
+
+  /** Number of retry attempts for failed requests */
+  retryAttempts: number;
+
+  /**
+   * Custom headers to include in all requests
+   * @example
+   * ```ts
+   * { "X-API-Key": "secret-key" }
+   * ```
+   */
+  headers?: Record<string, string>;
+}
+```
+
+**Comments for code sections:**
+
+```tsx
+export function Dashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  // ===== DATA FETCHING =====
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // ===== EVENT HANDLERS =====
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
+
+  const handleExport = () => {
+    exportData(stats);
+  };
+
+  // ===== RENDER =====
+  return (
+    <div>
+      <StatsCard stats={stats} />
+      <button onClick={handleRefresh}>Refresh</button>
+      <button onClick={handleExport}>Export</button>
+    </div>
+  );
+}
+```
+
+**Comments to disable ESLint:**
+
+```ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function legacyFunction(data: any) {
+  // This function uses any because it handles legacy data
+  // TODO: Refactor to use proper types
+}
+
+/* eslint-disable no-console */
+console.log("Debug info");
+console.log("More debug");
+/* eslint-enable no-console */
+```
+
+**Documentation for non-obvious patterns:**
+
+```ts
+export function memoizedSelector<T>(fn: (state: State) => T): (state: State) => T {
+  let lastState: State;
+  let lastResult: T;
+
+  return (state: State): T => {
+    // Only recompute if state reference changed
+    // This optimization prevents unnecessary recalculations
+    if (state === lastState) {
+      return lastResult;
+    }
+
+    lastState = state;
+    lastResult = fn(state);
+    return lastResult;
+  };
+}
+```
+
+**JSDoc with links:**
+
+```ts
+/**
+ * Validates user input according to OWASP guidelines.
+ *
+ * @see https://owasp.org/www-project-proactive-controls/
+ * @param input - User input to validate
+ * @returns True if input is safe
+ */
+export function validateInput(input: string): boolean {
+  // Implementation
+  return true;
+}
+```
+
+**Multi-line comments:**
+
+```ts
+/**
+ * This function implements a complex algorithm that processes
+ * user data in multiple steps:
+ *
+ * 1. Validate input data
+ * 2. Normalize values
+ * 3. Apply business rules
+ * 4. Format output
+ *
+ * Performance considerations:
+ * - Use memoization for expensive calculations
+ * - Batch database operations
+ * - Cache results for 5 minutes
+ */
+export function processUserData(data: UserData): ProcessedData {
+  // Implementation
+}
+```
+
+## Variants or Exceptions
+
+- Open-source projects should have more documentation than internal projects.
+- Very simple functions (< 3 lines) can omit JSDoc.
+
+## Links / References
+
+- [JSDoc Documentation](https://jsdoc.app/)
+- [TypeScript JSDoc](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)
+- [Clean Code Comments](https://refactoring.guru/smells/comments)
+- Internal documentation: `references.md`

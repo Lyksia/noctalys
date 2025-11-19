@@ -1,0 +1,76 @@
+---
+alwaysApply: false
+description: Define the global project hierarchy and "feature-first" logic
+---
+
+# Project Architecture
+
+**Objective**: Standardize the global project organization around a "feature-first" philosophy where each feature groups its components, hooks, services, and types.
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+The project architecture follows a **feature-first** logic: each business feature is autonomous and groups everything that belongs to it (components, hooks, services, utils, data, types).
+
+Global folders (`ui/`, `lib/`, `utils/`, `config/`, etc.) only contain what is **cross-cutting** and reusable across multiple features.
+
+This approach improves the readability, maintainability, and scalability of the project by avoiding the dispersion of code related to the same feature.
+
+**Global structure:**
+
+```
+├─ app/              # Next.js App Router (pages, layouts, API Routes)
+├─ emails/           # Email folders (templates, config, assets)
+└─ src/
+  ├─ features/         # Business features (calendar, payment, etc.)
+  ├─ components/
+    ├─ layouts/        # Structure components (navigation, section, footer, others)
+    └─ ui/             # Design system (Shadcn UI + custom components)
+  ├─ lib/              # Helpers related to external libraries
+  ├─ utils/            # Pure and generic utilities
+  ├─ data/             # Static data (JSON, seeds)
+  ├─ config/           # Global configurations
+  ├─ types/            # Global TypeScript types
+  └─ test/             # Test configuration and utilities
+```
+
+**Distribution logic:**
+
+- **`features/`**: everything that belongs to a specific feature.
+- **`ui/`**: global design system components.
+- **`lib/`**: library-dependent functions (React Query, Zod, etc.).
+- **`utils/`**: pure and independent functions.
+- **`data/`**: JSON files or static data.
+- **`config/`**: global configurations (env, constants, etc.).
+- **`types/`**: shared global types.
+- **`test/`**: test configuration and utilities (mocks, helpers).
+
+## Practical Implementation Example
+
+```ts
+// ✅ Good: complete and autonomous feature
+src/features/calendar/
+  ├─ components/
+  ├─ hooks/
+  ├─ services/
+  ├─ utils/
+  ├─ data/
+  ├─ types.ts
+  └─ index.ts
+
+// ❌ Bad: scattered code
+src/components/calendar/
+src/hooks/useCalendar.ts
+src/services/calendarService.ts
+```
+
+## Variants or Exceptions
+
+- Very small projects (< 5 features) can start with a simplified structure, but must migrate to this pattern as the project grows.
+- Shared UI components (buttons, inputs, modals) live in `ui/`, not in `features/`.
+
+## Liens / Références
+
+- [Next.js Project Structure](https://nextjs.org/docs/getting-started/project-structure)
+- [Feature-Sliced Design](https://feature-sliced.design/)

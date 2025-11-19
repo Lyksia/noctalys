@@ -1,0 +1,364 @@
+---
+alwaysApply: false
+description: Frame the creation and consistency of hooks (use*)
+---
+
+# Hook Creation and Conventions
+
+**Objective**: Frame the creation of custom hooks to ensure consistency, reusability, and compliance with React rules.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Custom hooks allow extracting and reusing logic between components. They must follow strict conventions to respect React rules.
+
+**Hook rules:**
+
+- **`use` prefix**: always prefix hooks with `use` (e.g. `useAuth`, `useCalendar`).
+- **React rules**: respect hook rules (no conditions, no loops).
+- **Consistent return**: return an object or tuple depending on use case.
+- **Strict typing**: always type parameters and return value.
+- **1 responsibility**: a hook must have a single clear responsibility.
+
+## Practical Implementation Example
+
+**Simple hook with state:**
+
+```ts
+// src/hooks/use-toggle.ts
+import { useState, useCallback } from "react";
+
+export function useToggle(initialValue = false) {
+  const [value, setValue] = useState(initialValue);
+
+  const toggle = useCallback(() => setValue((prev) => !prev), []);
+  const setTrue = useCallback(() => setValue(true), []);
+  const setFalse = useCallback(() => setValue(false), []);
+
+  return { value, toggle, setTrue, setFalse };
+}
+
+// Usage
+const { value: isOpen, toggle, setTrue: open, setFalse: close } = useToggle();
+```
+
+**Hook with parameters:**
+
+```ts
+// src/features/users/hooks/use-user.ts
+import { useQuery } from "@tanstack/react-query";
+import { fetchUserById } from "../services";
+import type { User } from "../types";
+
+interface UseUserOptions {
+  enabled?: boolean;
+  refetchInterval?: number;
+}
+
+export function useUser(userId: string, options: UseUserOptions = {}) {
+  return useQuery({
+    queryKey: ["users", userId],
+    queryFn: () => fetchUserById(userId),
+    enabled: options.enabled ?? !!userId,
+    refetchInterval: options.refetchInterval,
+  });
+}
+
+// Usage
+const { data: user, isLoading, error } = useUser("user-123");
+```
+
+**Hook with complex logic:**
+
+```ts
+// src/features/auth/hooks/use-auth.ts
+import { useState, useEffect, useCallback } from "react";
+import { loginUser, logoutUser, getCurrentUser } from "../services";
+import type { User, LoginCredentials } from "../types";
+
+interface UseAuthReturn {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  error: Error | null;
+}
+
+export function useAuth(): UseAuthReturn {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const isAuthenticated = user !== null;
+
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const loggedInUser = await loginUser(credentials);
+      setUser(loggedInUser);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    }
+  }, []);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  return { user, isLoading, isAuthenticated, login, logout, error };
+}
+
+// Usage
+const { user, isAuthenticated, login, logout } = useAuth();
+```
+
+**Hook with localStorage:**
+
+```ts
+// src/hooks/use-local-storage.ts
+import { useState, useEffect, useCallback } from "react";
+
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === "undefined") return initialValue;
+
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(`Error reading localStorage key "${key}":`, error);
+      return initialValue;
+    }
+  });
+
+  const setStoredValue = useCallback(
+    (newValue: T | ((prev: T) => T)) => {
+      try {
+        const valueToStore = newValue instanceof Function ? newValue(value) : newValue;
+        setValue(valueToStore);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+      } catch (error) {
+        console.error(`Error setting localStorage key "${key}":`, error);
+      }
+    },
+    [key, value]
+  );
+
+  const removeValue = useCallback(() => {
+    try {
+      setValue(initialValue);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.error(`Error removing localStorage key "${key}":`, error);
+    }
+  }, [key, initialValue]);
+
+  return [value, setStoredValue, removeValue] as const;
+}
+
+// Usage
+const [theme, setTheme, removeTheme] = useLocalStorage("theme", "light");
+```
+
+**Hook with debounce:**
+
+```ts
+// src/hooks/use-debounce.ts
+import { useState, useEffect } from "react";
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Usage
+const [searchQuery, setSearchQuery] = useState("");
+const debouncedQuery = useDebounce(searchQuery, 500);
+
+useEffect(() => {
+  if (debouncedQuery) {
+    searchUsers(debouncedQuery);
+  }
+}, [debouncedQuery]);
+```
+
+**Hook with media query:**
+
+```ts
+// src/hooks/use-media-query.ts
+import { useState, useEffect } from "react";
+
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
+
+    const handler = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handler);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handler);
+    };
+  }, [query]);
+
+  return matches;
+}
+
+// Usage
+const isMobile = useMediaQuery("(max-width: 768px)");
+const isTablet = useMediaQuery("(min-width: 769px) and (max-width: 1024px)");
+```
+
+**Hook with interval:**
+
+```ts
+// src/hooks/use-interval.ts
+import { useEffect, useRef } from "react";
+
+export function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef(callback);
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    if (delay === null) return;
+
+    const id = setInterval(() => savedCallback.current(), delay);
+
+    return () => clearInterval(id);
+  }, [delay]);
+}
+
+// Usage
+const [seconds, setSeconds] = useState(0);
+useInterval(() => setSeconds((s) => s + 1), 1000);
+```
+
+**Composite hook (uses other hooks):**
+
+```ts
+// src/features/products/hooks/use-product-search.ts
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
+import { searchProducts } from "../services";
+
+export function useProductSearch() {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+
+  const { data: products, isLoading } = useQuery({
+    queryKey: ["products", "search", debouncedQuery],
+    queryFn: () => searchProducts(debouncedQuery),
+    enabled: debouncedQuery.length > 2,
+  });
+
+  const resultCount = useMemo(() => products?.length ?? 0, [products]);
+
+  return {
+    query,
+    setQuery,
+    products: products ?? [],
+    isLoading,
+    resultCount,
+  };
+}
+```
+
+**Hook with cleanup:**
+
+```ts
+// src/hooks/use-event-listener.ts
+import { useEffect, useRef } from "react";
+
+export function useEventListener<K extends keyof WindowEventMap>(
+  eventName: K,
+  handler: (event: WindowEventMap[K]) => void,
+  element: HTMLElement | Window = window
+) {
+  const savedHandler = useRef(handler);
+
+  useEffect(() => {
+    savedHandler.current = handler;
+  }, [handler]);
+
+  useEffect(() => {
+    const isSupported = element && element.addEventListener;
+    if (!isSupported) return;
+
+    const eventListener = (event: Event) => savedHandler.current(event as WindowEventMap[K]);
+
+    element.addEventListener(eventName, eventListener);
+
+    return () => {
+      element.removeEventListener(eventName, eventListener);
+    };
+  }, [eventName, element]);
+}
+
+// Usage
+useEventListener("resize", () => console.log("Window resized"));
+useEventListener("keydown", (e) => console.log(e.key));
+```
+
+## Variants or Exceptions
+
+- Very simple hooks (< 5 lines) can be inline in the component.
+- Feature-specific hooks should stay in `features/[name]/hooks/`.
+
+## Links / References
+
+- [React Hooks Rules](https://react.dev/reference/rules/rules-of-hooks)
+- [Building Your Own Hooks](https://react.dev/learn/reusing-logic-with-custom-hooks)
+- Internal documentation: `references.md`

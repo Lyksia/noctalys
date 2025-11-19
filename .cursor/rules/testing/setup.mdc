@@ -1,0 +1,103 @@
+---
+id: testing/setup
+category: testing
+title: Vitest and React Testing Library Configuration
+status: draft
+tags: [testing, vitest, react-testing-library, setup, configuration]
+---
+
+# Vitest and React Testing Library Configuration
+
+**Objective**: Configure Vitest and React Testing Library in a standardized way to ensure a consistent testing environment.
+**Context**: To be applied to ensure code quality and reliability.
+
+## Explanation
+
+Test configuration is based on Vitest as the test framework and React Testing Library as the utility for testing React components. This configuration must support TypeScript, path aliases, and simulate the DOM environment.
+
+**Configuration Elements:**
+
+* **Vitest**: fast test framework, compatible with ESM and Vite
+* **React Testing Library**: utility focused on user experience
+* **jsdom** or **happy-dom**: simulated DOM environment
+* **@testing-library/jest-dom**: custom matchers for DOM assertions
+* **@testing-library/user-event**: realistic user interaction simulation
+
+**Main Configuration Files:**
+
+* `vitest.config.ts`: Vitest configuration, alias resolution, environment
+* `test/setup.ts`: global configuration, extensions, polyfills
+* `package.json`: test scripts and dependencies
+
+**Best Practices:**
+
+* Use `jsdom` to simulate the browser
+* Configure `@/*` aliases identical to the project
+* Enable code coverage with `c8` or `istanbul`
+* Define a reasonable timeout (5000ms by default)
+* Automatically clean up after each test
+
+## Practical Implementation Example
+
+```ts
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'test/',
+        '**/*.config.ts',
+        '**/*.d.ts',
+      ],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+
+// test/setup.ts
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+// Automatic cleanup after each test
+afterEach(() => {
+  cleanup();
+});
+
+// package.json (scripts)
+{
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  }
+}
+```
+
+## Variants or Exceptions
+
+* For Next.js, use `@vitejs/plugin-react` or Next.js configuration with Vitest
+* For tests requiring a real browser, use Playwright or Cypress as a complement
+* If the project uses Jest, migrate progressively to Vitest
+
+## Links / References
+
+* https://vitest.dev/config/
+* https://testing-library.com/docs/react-testing-library/setup
+* https://github.com/testing-library/jest-dom
+* Internal documentation: `/test/README.md`

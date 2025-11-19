@@ -1,0 +1,110 @@
+---
+alwaysApply: false
+description: Standardize global project configuration
+---
+
+# Config folder structure
+
+**Objective**: Centralize **global configurations** of the project (constants, environment variables, application settings) in a dedicated folder.
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+The `config/` folder groups all global configurations and constants of the project that do not depend on a specific feature.
+
+**Organization:**
+
+```
+src/config/
+ ├─ env.ts              # Validation and reading of environment variables
+ ├─ constants.ts        # Global constants
+ ├─ api.ts              # API configuration (endpoints, base URLs)
+ ├─ app.ts              # Application metadata (name, version, etc.)
+ ├─ features.ts         # Feature flags
+ └─ index.ts            # Barrel for exports
+```
+
+**Rules:**
+
+- Constants must be in **UPPER_SNAKE_CASE**.
+- Environment variables must be **validated** via Zod.
+- Sensitive keys (API keys, secrets) should **never** be committed.
+- Configurations specific to a feature should remain in `features/[name]/`.
+
+## Practical Implementation Example
+
+**File `config/constants.ts`:**
+
+```ts
+export const APP_NAME = "Lyksia";
+export const APP_VERSION = "1.0.0";
+
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_FILE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+export const PAGINATION_DEFAULT_LIMIT = 20;
+export const PAGINATION_MAX_LIMIT = 100;
+```
+
+**File `config/env.ts`:**
+
+```ts
+import { z } from "zod";
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production", "test"]),
+  NEXT_PUBLIC_API_URL: z.string().url(),
+  DATABASE_URL: z.string().url(),
+  STRIPE_SECRET_KEY: z.string().min(1),
+});
+
+export const env = envSchema.parse(process.env);
+```
+
+**File `config/api.ts`:**
+
+```ts
+import { env } from "./env";
+
+export const API_BASE_URL = env.NEXT_PUBLIC_API_URL;
+
+export const API_ENDPOINTS = {
+  AUTH: {
+    LOGIN: "/auth/login",
+    LOGOUT: "/auth/logout",
+    REGISTER: "/auth/register",
+  },
+  USERS: {
+    LIST: "/users",
+    BY_ID: (id: string) => `/users/${id}`,
+  },
+} as const;
+```
+
+**File `config/index.ts`:**
+
+```ts
+export * from "./constants";
+export * from "./env";
+export * from "./api";
+export * from "./app";
+export * from "./features";
+```
+
+**Import from a feature:**
+
+```ts
+import { APP_NAME, API_ENDPOINTS, env } from "@/config";
+```
+
+## Variants or Exceptions
+
+- Configurations specific to a feature should remain in `features/[name]/`.
+- Very small projects can centralize all constants in a single `config/index.ts` file.
+
+## Links / References
+
+- [Next.js Environment Variables](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables)
+- [Zod Validation](https://zod.dev/)
+- Internal documentation: `references.md`

@@ -1,0 +1,263 @@
+---
+alwaysApply: false
+description: Using Markdown for documentation
+---
+
+# Markdown
+
+**Objectif** : Standardiser l'usage du Markdown pour la documentation du projet avec une structure cohérente et lisible.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+Markdown est le format de documentation utilisé pour tous les projets. Il fournit une syntaxe simple, lisible et largement supportée.
+
+**Principes clés :**
+
+- **Langage anglais** : toute la documentation doit être en anglais.
+- **Structure cohérente** : utiliser les mêmes conventions de titres et formatage.
+- **README par feature** : chaque feature doit avoir son propre README.
+- **Documentation UI** : chaque composant UI doit être documenté.
+- **Code blocks** : toujours spécifier le langage pour la coloration syntaxique.
+
+## Exemple de mise en pratique
+
+**Structure de documentation :**
+
+```
+docs/
+ ├─ README.md              # Documentation principale
+ ├─ architecture.md        # Architecture du projet
+ ├─ getting-started.md     # Guide de démarrage
+ └─ deployment.md          # Guide de déploiement
+
+src/features/calendar/
+ └─ README.md              # Documentation de la feature
+
+src/components/ui/docs/
+ ├─ button.md
+ ├─ input.md
+ └─ dialog.md
+```
+
+**README principal :**
+
+```md
+# Project Name
+
+Brief description of the project.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL 14+
+
+### Installation
+
+```bash
+npm install
+npm run dev
+```
+
+### Environment Variables
+
+```env
+DATABASE_URL=postgresql://...
+NEXT_PUBLIC_API_URL=https://...
+```
+
+## Features
+
+- **Authentication**: User login and registration
+- **Dashboard**: Analytics and statistics
+- **Payments**: Stripe integration
+
+## Tech Stack
+
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Prisma
+- PostgreSQL
+
+## Documentation
+
+- [Architecture](./docs/architecture.md)
+- [Getting Started](./docs/getting-started.md)
+- [Deployment](./docs/deployment.md)
+
+## License
+
+MIT
+```
+
+**Documentation de feature :**
+
+```md
+# Calendar Feature
+
+This feature provides calendar functionality with event management.
+
+## Components
+
+### CalendarGrid
+
+Main calendar component displaying events in a grid layout.
+
+**Props:**
+- `events: CalendarEvent[]` - Array of events to display
+- `onEventClick?: (event: CalendarEvent) => void` - Callback when event is clicked
+
+**Example:**
+
+```tsx
+import { CalendarGrid } from "@/features/calendar";
+
+<CalendarGrid events={events} onEventClick={handleEventClick} />
+```
+
+## Hooks
+
+### useCalendar
+
+Hook for managing calendar state.
+
+**Returns:**
+- `currentMonth: Date` - Current month being displayed
+- `goToNextMonth: () => void` - Navigate to next month
+- `goToPrevMonth: () => void` - Navigate to previous month
+
+**Example:**
+
+```ts
+const { currentMonth, goToNextMonth } = useCalendar();
+```
+
+## Services
+
+### fetchEvents
+
+Fetches all calendar events.
+
+```ts
+const events = await fetchEvents();
+```
+
+## Types
+
+```ts
+interface CalendarEvent {
+  id: string;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  description?: string;
+}
+```
+```
+
+**Documentation de composant UI :**
+
+```md
+# Button
+
+A customizable button component with multiple variants and sizes.
+
+## Usage
+
+```tsx
+import { Button } from "@/components/ui/button";
+
+<Button variant="default" size="md">
+  Click me
+</Button>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| variant | `"default" \| "outline" \| "ghost"` | `"default"` | Visual style of the button |
+| size | `"sm" \| "md" \| "lg"` | `"md"` | Size of the button |
+| disabled | `boolean` | `false` | Whether the button is disabled |
+
+## Variants
+
+### Default
+
+Primary button with filled background.
+
+```tsx
+<Button variant="default">Primary</Button>
+```
+
+### Outline
+
+Button with border and transparent background.
+
+```tsx
+<Button variant="outline">Outline</Button>
+```
+
+### Ghost
+
+Minimal button with hover effect.
+
+```tsx
+<Button variant="ghost">Ghost</Button>
+```
+
+## Accessibility
+
+- Supports `aria-label` for screen readers
+- Keyboard navigation enabled
+- Focus visible by default
+```
+
+**Conventions Markdown :**
+
+```md
+# Title (H1 - une seule fois par document)
+
+## Section (H2)
+
+### Subsection (H3)
+
+**Bold text** for emphasis
+*Italic text* for secondary emphasis
+`code` for inline code
+
+- Unordered list item
+- Another item
+
+1. Ordered list item
+2. Another item
+
+[Link text](https://example.com)
+
+![Image alt text](./image.png)
+
+> Blockquote for important notes
+
+```language
+Code block with syntax highlighting
+```
+
+| Column 1 | Column 2 |
+|----------|----------|
+| Value 1  | Value 2  |
+```
+
+## Variantes ou exceptions
+
+- Les projets internes peuvent utiliser le français pour la documentation si toute l'équipe est francophone.
+- Les projets open-source doivent impérativement utiliser l'anglais.
+
+## Liens / Références
+
+- [Markdown Guide](https://www.markdownguide.org/)
+- [GitHub Flavored Markdown](https://github.github.com/gfm/)
+- [Markdown Cheat Sheet](https://www.markdownguide.org/cheat-sheet/)

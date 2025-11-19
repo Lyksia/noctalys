@@ -1,0 +1,183 @@
+---
+alwaysApply: false
+description: Configuration and conventions for API requests
+---
+
+# Axios
+
+**Objectif** : Standardiser l'usage d'Axios pour les requêtes API avec une configuration cohérente et des interceptors.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+Axios est la librairie HTTP utilisée pour les appels API. Elle fournit une API simple, des interceptors et une gestion d'erreurs cohérente.
+
+**Principes clés :**
+
+- **Instance centralisée** : créer une instance Axios dans `lib/axios.ts`.
+- **Interceptors** : ajouter des interceptors pour l'authentification, les erreurs, etc.
+- **Base URL** : définir la base URL via les variables d'environnement.
+- **Timeouts** : toujours définir un timeout pour éviter les requêtes infinies.
+- **Typage** : typer les réponses avec TypeScript.
+
+**Installation :**
+
+```bash
+npm install axios
+```
+
+## Exemple de mise en pratique
+
+**Configuration de l'instance Axios :**
+
+```ts
+// src/lib/axios.ts
+import axios from "axios";
+import { env } from "@/config/env";
+
+export const apiClient = axios.create({
+  baseURL: env.NEXT_PUBLIC_API_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Interceptor pour ajouter le token d'authentification
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor pour gérer les erreurs
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Rediriger vers login
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+**Service API typé :**
+
+```ts
+// src/features/users/services/users-api.ts
+import { apiClient } from "@/lib/axios";
+import type { User, CreateUserInput } from "../types";
+
+export async function fetchUsers(): Promise<User[]> {
+  const { data } = await apiClient.get<User[]>("/users");
+  return data;
+}
+
+export async function fetchUserById(id: string): Promise<User> {
+  const { data } = await apiClient.get<User>(`/users/${id}`);
+  return data;
+}
+
+export async function createUser(input: CreateUserInput): Promise<User> {
+  const { data } = await apiClient.post<User>("/users", input);
+  return data;
+}
+
+export async function updateUser(id: string, input: Partial<User>): Promise<User> {
+  const { data } = await apiClient.patch<User>(`/users/${id}`, input);
+  return data;
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await apiClient.delete(`/users/${id}`);
+}
+```
+
+**Gestion d'erreurs :**
+
+```ts
+// src/features/users/services/users-api.ts
+import { apiClient } from "@/lib/axios";
+import { AxiosError } from "axios";
+
+export async function fetchUsers(): Promise<User[]> {
+  try {
+    const { data } = await apiClient.get<User[]>("/users");
+    return data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      console.error("API Error:", error.response?.data);
+      throw new Error(error.response?.data?.message || "Failed to fetch users");
+    }
+    throw error;
+  }
+}
+```
+
+**Requête avec paramètres :**
+
+```ts
+export async function searchUsers(query: string, page = 1): Promise<User[]> {
+  const { data } = await apiClient.get<User[]>("/users/search", {
+    params: { q: query, page, limit: 20 },
+  });
+  return data;
+}
+```
+
+**Annulation de requête :**
+
+```ts
+import { apiClient } from "@/lib/axios";
+
+export async function fetchUsers(signal?: AbortSignal): Promise<User[]> {
+  const { data } = await apiClient.get<User[]>("/users", { signal });
+  return data;
+}
+
+// Usage dans un composant
+useEffect(() => {
+  const controller = new AbortController();
+  fetchUsers(controller.signal);
+
+  return () => controller.abort(); // Annuler la requête au démontage
+}, []);
+```
+
+**Upload de fichier :**
+
+```ts
+export async function uploadAvatar(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const { data } = await apiClient.post<{ url: string }>("/upload/avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return data.url;
+}
+```
+
+## Variantes ou exceptions
+
+- Les projets Next.js avec Server Components peuvent utiliser `fetch()` natif côté serveur.
+- Les projets très simples sans beaucoup d'appels API peuvent se passer d'Axios.
+
+## Liens / Références
+
+- [Axios Documentation](https://axios-http.com/docs/intro)
+- [Axios Interceptors](https://axios-http.com/docs/interceptors)
+- [Axios TypeScript](https://axios-http.com/docs/typescript)

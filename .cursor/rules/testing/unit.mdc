@@ -1,0 +1,114 @@
+---
+id: testing/unit
+category: testing
+title: Unit Tests
+status: draft
+tags: [testing, unit-tests, vitest, best-practices]
+---
+
+# Unit Tests
+
+**Objective**: Frame the writing of unit tests to ensure reliable and maintainable coverage of isolated functions, hooks, and components.
+**Context**: To be applied to ensure code quality and reliability.
+
+## Explanation
+
+Unit tests form the foundation of the test pyramid. They test isolated code units (functions, hooks, simple components) without external dependencies. They must be fast, deterministic, and easy to maintain.
+
+**Fundamental Principles:**
+
+* **Complete isolation**: test one unit at a time
+* **Speed**: execution in milliseconds
+* **Determinism**: identical results on every execution
+* **Readability**: the test should document the expected behavior
+* **Independence**: no execution order required
+
+**What to test in unit tests:**
+
+* Utility functions (`utils/`, `lib/`)
+* Custom hooks (`use*`)
+* Pure business logic (calculations, transformations)
+* Simple components without external dependencies
+* Zod schema validation
+* Data formatting and parsing
+
+**What NOT to test in unit tests:**
+
+* Components with many dependencies (→ integration tests)
+* Real API calls (→ mocks)
+* Interactions between modules (→ integration tests)
+* Complete user journeys (→ E2E)
+
+**Unit test structure:**
+
+1. **Arrange**: prepare data and context
+2. **Act**: execute the unit under test
+3. **Assert**: verify the expected result
+
+**Naming conventions:**
+
+* File: `[name].test.ts` or `[name].test.tsx`
+* `describe` block: name of the function/component being tested
+* `it` block: tested behavior in natural language
+
+## Practical Implementation Example
+
+```ts
+// src/utils/strings/slugify.test.ts
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify';
+
+describe('slugify', () => {
+  it('should convert string to lowercase', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('should remove special characters', () => {
+    expect(slugify('Hello @World! #2025')).toBe('hello-world-2025');
+  });
+
+  it('should handle empty strings', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('should handle accented characters', () => {
+    expect(slugify('Café Français')).toBe('cafe-francais');
+  });
+});
+
+// src/features/calendar/hooks/use-calendar.test.ts
+import { describe, it, expect } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { useCalendar } from './use-calendar';
+
+describe('useCalendar', () => {
+  it('should initialize with current month', () => {
+    const { result } = renderHook(() => useCalendar());
+    const currentMonth = new Date().getMonth();
+
+    expect(result.current.currentMonth).toBe(currentMonth);
+  });
+
+  it('should navigate to next month', () => {
+    const { result } = renderHook(() => useCalendar());
+    const initialMonth = result.current.currentMonth;
+
+    result.current.nextMonth();
+
+    expect(result.current.currentMonth).toBe((initialMonth + 1) % 12);
+  });
+});
+```
+
+## Variants or Exceptions
+
+* For functions with many edge cases, group similar cases with `it.each()`
+* Components tightly coupled to contexts require integration tests
+* Snapshots can complement unit tests for complex outputs (use sparingly)
+
+## Links / References
+
+* https://vitest.dev/guide/
+* https://kentcdodds.com/blog/common-mistakes-with-react-testing-library
+* https://testing-library.com/docs/react-testing-library/api/#renderhook
+* Internal documentation: `/test/README.md`

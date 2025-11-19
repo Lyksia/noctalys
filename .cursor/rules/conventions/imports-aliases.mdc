@@ -1,0 +1,244 @@
+---
+alwaysApply: false
+description: Define import aliases and their usage
+---
+
+# Import Aliases
+
+**Objective**: Define import aliases and their usage to simplify imports and avoid complex relative paths.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Import aliases allow importing modules with absolute paths from the project root, avoiding complex relative paths (`../../../`).
+
+**Standard aliases:**
+
+- `@/app/*` → `./app/*` (Next.js App Router)
+- `@/emails/*` → `./emails/*` (React Email templates)
+- `@/*` → `./src/*` (Everything else)
+
+## Practical Implementation Example
+
+**TypeScript configuration:**
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/app/*": ["./app/*"],
+      "@/emails/*": ["./emails/*"],
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+**Vite/Vitest configuration:**
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+import path from "path";
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@/app": path.resolve(__dirname, "./app"),
+      "@/emails": path.resolve(__dirname, "./emails"),
+    },
+  },
+});
+```
+
+**Imports with aliases:**
+
+```tsx
+// ❌ Bad: complex relative paths
+import { Button } from "../../../components/ui/button";
+import { useAuth } from "../../../../features/auth/hooks";
+import { API_BASE_URL } from "../../../../../config/constants";
+
+// ✅ Good: absolute aliases
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/hooks";
+import { API_BASE_URL } from "@/config/constants";
+```
+
+**Structure and aliases:**
+
+```
+Project/
+├─ app/                    → @/app/*
+│   ├─ page.tsx
+│   └─ layout.tsx
+├─ emails/                 → @/emails/*
+│   ├─ welcome.tsx
+│   └─ reset-password.tsx
+└─ src/                    → @/*
+    ├─ features/           → @/features/*
+    ├─ components/         → @/components/*
+    ├─ lib/                → @/lib/*
+    ├─ utils/              → @/utils/*
+    ├─ config/             → @/config/*
+    └─ types/              → @/types/*
+```
+
+**Import examples:**
+
+```tsx
+// From anywhere in the project
+import { Button, Input, Dialog } from "@/components/ui";
+import { CalendarGrid, useCalendar } from "@/features/calendar";
+import { apiClient } from "@/lib/axios";
+import { formatDate } from "@/utils/dates";
+import { APP_NAME, API_BASE_URL } from "@/config/constants";
+import type { User, Product } from "@/types";
+```
+
+**Imports from App Router:**
+
+```tsx
+// app/dashboard/page.tsx
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { StatsCard } from "@/features/dashboard/components";
+import { useStats } from "@/features/dashboard/hooks";
+```
+
+**Email imports:**
+
+```ts
+// src/features/auth/services/send-welcome-email.ts
+import { render } from "@react-email/render";
+import { WelcomeEmail } from "@/emails/welcome";
+import { sendEmail } from "./email-service";
+
+export async function sendWelcomeEmail(email: string, name: string) {
+  const html = render(<WelcomeEmail userName={name} />);
+  await sendEmail({ to: email, subject: "Welcome!", html });
+}
+```
+
+**Import order with aliases:**
+
+```tsx
+// 1. External libraries
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+// 2. Aliases @/ (alphabetically ordered)
+import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/config/constants";
+import { useAuth } from "@/features/auth/hooks";
+import { apiClient } from "@/lib/axios";
+import type { User } from "@/types";
+import { formatDate } from "@/utils/dates";
+
+// 3. Relative imports (local feature)
+import { fetchUsers } from "../services";
+import type { UserFilters } from "../types";
+```
+
+**Aliases in tests:**
+
+```tsx
+// src/features/users/components/user-card.test.tsx
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { UserCard } from "./user-card";
+
+// Aliases also work in tests
+import { renderWithProviders } from "@/test/utils";
+import { mockUsers } from "@/test/mocks/data";
+```
+
+**Aliases in configuration files:**
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    setupFiles: ["./src/test/setup.ts"], // Can also use @/test/setup.ts
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+});
+```
+
+**Don't use aliases for:**
+
+```tsx
+// Relative imports in the same feature (acceptable)
+// features/calendar/components/calendar-grid.tsx
+import { useCalendar } from "../hooks";
+import { formatEventDate } from "../utils";
+import type { CalendarEvent } from "../types";
+
+// Or use alias if preferred (also acceptable)
+import { useCalendar } from "@/features/calendar/hooks";
+```
+
+**Avoid overly specific aliases:**
+
+```json
+// ❌ Bad: too many specific aliases
+{
+  "paths": {
+    "@components/*": ["./src/components/*"],
+    "@features/*": ["./src/features/*"],
+    "@hooks/*": ["./src/hooks/*"],
+    "@utils/*": ["./src/utils/*"],
+    "@lib/*": ["./src/lib/*"],
+    "@types/*": ["./src/types/*"]
+  }
+}
+
+// ✅ Good: simple and general alias
+{
+  "paths": {
+    "@/*": ["./src/*"]
+  }
+}
+```
+
+**ESLint configuration to enforce aliases:**
+
+```json
+// .eslintrc.json
+{
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          "../../../*",  // Forbid deep relative paths
+          "../../../../../../*"
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Variants or Exceptions
+
+- Relative imports are acceptable in the same feature.
+- Configuration files can use relative paths.
+
+## Links / References
+
+- [TypeScript Path Mapping](https://www.typescriptlang.org/docs/handbook/module-resolution.html#path-mapping)
+- [Next.js Absolute Imports](https://nextjs.org/docs/app/building-your-application/configuring/absolute-imports-and-module-aliases)
+- Internal documentation: `references.md`

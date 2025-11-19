@@ -1,0 +1,205 @@
+---
+alwaysApply: false
+description: Deployment and environment variables
+---
+
+# Vercel
+
+**Objectif** : Standardiser le déploiement sur Vercel avec une configuration optimisée et une gestion sécurisée des variables d'environnement.
+
+**Contexte** : À appliquer pour standardiser l'usage de cette technologie dans les projets.
+
+## Explication
+
+Vercel est la plateforme de déploiement utilisée pour tous les projets Next.js. Elle fournit un déploiement automatique, des previews par branche et une intégration Git native.
+
+**Principes clés :**
+
+- **Déploiement automatique** : chaque push déclenche un déploiement.
+- **Branches** : `main` → production, `dev` → staging, `feature/*` → preview.
+- **Variables d'environnement** : gérer les variables via l'interface Vercel.
+- **Domaines custom** : configurer les domaines custom via Vercel.
+- **Analytics** : activer Vercel Analytics pour le monitoring.
+
+## Exemple de mise en pratique
+
+**Structure des branches :**
+
+```
+main           → Production (lyksia.com)
+dev            → Staging (dev.lyksia.com)
+feature/login  → Preview (login-abc123.vercel.app)
+```
+
+**Configuration `vercel.json` :**
+
+```json
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "regions": ["cdg1"],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/old-page",
+      "destination": "/new-page",
+      "permanent": true
+    }
+  ]
+}
+```
+
+**Variables d'environnement :**
+
+Via l'interface Vercel :
+1. Project Settings → Environment Variables
+2. Ajouter les variables pour chaque environnement (Production, Preview, Development)
+
+```env
+# Production
+DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_API_URL=https://api.lyksia.com
+
+# Preview / Development
+DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_API_URL=https://api-dev.lyksia.com
+```
+
+**Ignorer certains déploiements :**
+
+```json
+// vercel.json
+{
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "dev": true
+    }
+  }
+}
+```
+
+Ou via `.vercelignore` :
+
+```
+# .vercelignore
+.env.local
+.vscode
+*.test.ts
+*.test.tsx
+```
+
+**Build optimisé :**
+
+```json
+// package.json
+{
+  "scripts": {
+    "build": "prisma generate && next build",
+    "postbuild": "next-sitemap"
+  }
+}
+```
+
+**Caching et revalidation :**
+
+```ts
+// app/blog/page.tsx
+export const revalidate = 3600; // Revalidate toutes les heures
+
+export default async function BlogPage() {
+  const posts = await fetchPosts();
+  return <PostList posts={posts} />;
+}
+```
+
+**Domaines custom :**
+
+1. Vercel Dashboard → Project → Settings → Domains
+2. Ajouter `lyksia.com` et `www.lyksia.com`
+3. Configurer les DNS chez le registrar
+
+**Analytics et monitoring :**
+
+```tsx
+// app/layout.tsx
+import { Analytics } from "@vercel/analytics/react";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <Analytics />
+      </body>
+    </html>
+  );
+}
+```
+
+**Preview deployments :**
+
+Chaque PR sur GitHub génère automatiquement un preview deployment avec une URL unique :
+
+```
+https://my-project-git-feature-login-username.vercel.app
+```
+
+**Secrets GitHub pour Vercel :**
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+```
+
+## Variantes ou exceptions
+
+- Les projets non-Next.js peuvent utiliser d'autres plateformes (Netlify, Railway, etc.).
+- Les projets avec des besoins serveur spécifiques peuvent nécessiter un VPS.
+
+## Liens / Références
+
+- [Vercel Documentation](https://vercel.com/docs)
+- [Vercel Environment Variables](https://vercel.com/docs/concepts/projects/environment-variables)
+- [Vercel CLI](https://vercel.com/docs/cli)

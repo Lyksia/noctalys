@@ -1,0 +1,372 @@
+---
+alwaysApply: false
+description: Handle optimistic updates
+---
+
+# Mises à jour optimistes
+
+**Objectif** : Gérer les mises à jour optimistes pour améliorer l'expérience utilisateur avec des réponses instantanées.
+
+**Contexte** : À appliquer pour garantir la cohérence de la gestion de l'état et des données.
+
+## Explication
+
+Les mises à jour optimistes consistent à mettre à jour l'UI immédiatement avant la confirmation du serveur, puis à restaurer l'état précédent en cas d'erreur.
+
+**Quand utiliser :**
+
+- Actions utilisateur fréquentes (like, toggle, drag-and-drop)
+- Opérations à faible risque
+- UI réactive nécessaire
+
+**Quand éviter :**
+
+- Opérations critiques (paiements, suppressions importantes)
+- Données sensibles
+- Risque élevé d'échec
+
+## Exemple de mise en pratique
+
+**Toggle simple :**
+
+```ts
+// src/features/todos/hooks/use-toggle-todo.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toggleTodo } from "../services";
+import type { Todo } from "../types";
+
+export function useToggleTodo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (todoId: string) => toggleTodo(todoId),
+    onMutate: async (todoId) => {
+      // 1. Annuler les refetch en cours pour éviter les conflits
+      await queryClient.cancelQueries({ queryKey: ["todos"] });
+
+      // 2. Snapshot de l'état actuel pour rollback
+      const previousTodos = queryClient.getQueryData<Todo[]>(["todos"]);
+
+      // 3. Mise à jour optimiste de l'UI
+      queryClient.setQueryData<Todo[]>(["todos"], (old) => {
+        if (!old) return [];
+        return old.map((todo) => (todo.id === todoId ? { ...todo, completed: !todo.completed } : todo));
+      });
+
+      // 4. Retourner le contexte pour rollback
+      return { previousTodos };
+    },
+    onError: (err, todoId, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousTodos) {
+        queryClient.setQueryData(["todos"], context.previousTodos);
+      }
+      toast.error("Failed to update todo");
+    },
+    onSettled: () => {
+      // Refetch pour synchroniser avec le serveur
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+}
+```
+
+**Like/Unlike avec compteur :**
+
+```ts
+// src/features/posts/hooks/use-toggle-like.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toggleLike } from "../services";
+import type { Post } from "../types";
+
+export function useToggleLike() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ postId, isLiked }: { postId: string; isLiked: boolean }) => toggleLike(postId, isLiked),
+    onMutate: async ({ postId, isLiked }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts", postId] });
+
+      const previousPost = queryClient.getQueryData<Post>(["posts", postId]);
+
+      // Mise à jour optimiste du like count
+      queryClient.setQueryData<Post>(["posts", postId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          isLiked: !isLiked,
+          likeCount: isLiked ? old.likeCount - 1 : old.likeCount + 1,
+        };
+      });
+
+      return { previousPost };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPost) {
+        queryClient.setQueryData(["posts", variables.postId], context.previousPost);
+      }
+    },
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["posts", variables.postId] });
+    },
+  });
+}
+
+// Usage
+export function LikeButton({ postId, isLiked, likeCount }: { postId: string; isLiked: boolean; likeCount: number }) {
+  const toggleLikeMutation = useToggleLike();
+
+  const handleClick = () => {
+    toggleLikeMutation.mutate({ postId, isLiked });
+  };
+
+  return (
+    <button onClick={handleClick} disabled={toggleLikeMutation.isPending}>
+      {isLiked ? "❤️" : "🤍"} {likeCount}
+    </button>
+  );
+}
+```
+
+**Ajout d'item à une liste :**
+
+```ts
+// src/features/cart/hooks/use-add-to-cart.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addToCart } from "../services";
+import type { CartItem, Product } from "../types";
+
+export function useAddToCart() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) => addToCart(productId, quantity),
+    onMutate: async ({ productId, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ["cart"] });
+
+      const previousCart = queryClient.getQueryData<CartItem[]>(["cart"]);
+
+      // Récupérer les infos du produit depuis le cache
+      const product = queryClient.getQueryData<Product>(["products", productId]);
+
+      if (product) {
+        // Ajouter optimistiquement à la liste
+        queryClient.setQueryData<CartItem[]>(["cart"], (old) => {
+          const existing = old?.find((item) => item.productId === productId);
+
+          if (existing) {
+            // Mettre à jour la quantité si existe déjà
+            return old?.map((item) => (item.productId === productId ? { ...item, quantity: item.quantity + quantity } : item));
+          } else {
+            // Ajouter nouveau item
+            return [
+              ...(old || []),
+              {
+                id: `temp-${Date.now()}`, // ID temporaire
+                productId,
+                product,
+                quantity,
+              },
+            ];
+          }
+        });
+      }
+
+      return { previousCart };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(["cart"], context.previousCart);
+      }
+      toast.error("Failed to add to cart");
+    },
+    onSuccess: () => {
+      toast.success("Added to cart");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+```
+
+**Suppression avec animation :**
+
+```tsx
+// src/features/todos/components/todo-item.tsx
+import { useState } from "react";
+import { useDeleteTodo } from "../hooks";
+
+export function TodoItem({ todo }: { todo: Todo }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteMutation = useDeleteTodo();
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+
+    // Attendre l'animation avant la mutation
+    setTimeout(async () => {
+      try {
+        await deleteMutation.mutateAsync(todo.id);
+      } catch (error) {
+        // Annuler l'animation en cas d'erreur
+        setIsDeleting(false);
+      }
+    }, 300); // Durée de l'animation
+  };
+
+  return (
+    <div className={`todo-item ${isDeleting ? "fade-out" : ""}`}>
+      <span>{todo.title}</span>
+      <button onClick={handleDelete}>Delete</button>
+    </div>
+  );
+}
+```
+
+**Drag and drop avec optimistic update :**
+
+```ts
+// src/features/kanban/hooks/use-move-task.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { moveTask } from "../services";
+import type { Task } from "../types";
+
+export function useMoveTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ taskId, newColumnId, newIndex }: { taskId: string; newColumnId: string; newIndex: number }) =>
+      moveTask(taskId, newColumnId, newIndex),
+    onMutate: async ({ taskId, newColumnId, newIndex }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+
+      const previousTasks = queryClient.getQueryData<Task[]>(["tasks"]);
+
+      queryClient.setQueryData<Task[]>(["tasks"], (old) => {
+        if (!old) return [];
+
+        const task = old.find((t) => t.id === taskId);
+        if (!task) return old;
+
+        // Retirer de l'ancienne position
+        const filtered = old.filter((t) => t.id !== taskId);
+
+        // Mettre à jour la colonne
+        const updated = { ...task, columnId: newColumnId };
+
+        // Insérer à la nouvelle position
+        filtered.splice(newIndex, 0, updated);
+
+        return filtered;
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["tasks"], context.previousTasks);
+      }
+      toast.error("Failed to move task");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+```
+
+**Mise à jour inline avec debounce :**
+
+```tsx
+// src/features/notes/components/note-editor.tsx
+import { useState, useEffect } from "react";
+import { useDebouncedCallback } from "use-debounce";
+import { useUpdateNote } from "../hooks";
+
+export function NoteEditor({ noteId, initialContent }: { noteId: string; initialContent: string }) {
+  const [content, setContent] = useState(initialContent);
+  const updateMutation = useUpdateNote();
+
+  // Debounce pour éviter trop de requêtes
+  const debouncedUpdate = useDebouncedCallback((value: string) => {
+    updateMutation.mutate({ noteId, content: value });
+  }, 1000);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setContent(newValue);
+    debouncedUpdate(newValue);
+  };
+
+  return (
+    <div>
+      <textarea value={content} onChange={handleChange} />
+      {updateMutation.isPending && <span className="text-gray-500">Saving...</span>}
+      {updateMutation.isSuccess && <span className="text-green-500">Saved ✓</span>}
+      {updateMutation.isError && <span className="text-red-500">Failed to save</span>}
+    </div>
+  );
+}
+```
+
+**Optimistic update avec rollback partiel :**
+
+```ts
+// src/features/comments/hooks/use-update-comment.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateComment } from "../services";
+import type { Comment } from "../types";
+
+export function useUpdateComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) => updateComment(commentId, content),
+    onMutate: async ({ commentId, content }) => {
+      await queryClient.cancelQueries({ queryKey: ["comments"] });
+
+      const previousComments = queryClient.getQueryData<Comment[]>(["comments"]);
+
+      // Mise à jour optimiste
+      queryClient.setQueryData<Comment[]>(["comments"], (old) => {
+        if (!old) return [];
+        return old.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                content,
+                updatedAt: new Date(), // Mettre à jour le timestamp localement
+                isOptimistic: true, // Flag pour afficher un indicateur
+              }
+            : comment
+        );
+      });
+
+      return { previousComments };
+    },
+    onSuccess: (updatedComment) => {
+      // Remplacer la version optimiste par la vraie
+      queryClient.setQueryData<Comment[]>(["comments"], (old) => {
+        if (!old) return [];
+        return old.map((comment) => (comment.id === updatedComment.id ? { ...updatedComment, isOptimistic: false } : comment));
+      });
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousComments) {
+        queryClient.setQueryData(["comments"], context.previousComments);
+      }
+    },
+  });
+}
+```
+
+## Variantes ou exceptions
+
+- Ne jamais utiliser d'optimistic updates pour les paiements ou opérations critiques.
+- Les erreurs doivent toujours afficher un message clair à l'utilisateur.
+
+## Liens / Références
+
+- [TanStack Query Optimistic Updates](https://tanstack.com/query/latest/docs/react/guides/optimistic-updates)
+- Documentation interne : `references.md`

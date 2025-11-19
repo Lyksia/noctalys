@@ -1,0 +1,98 @@
+---
+alwaysApply: false
+description: Set naming conventions for files and folders
+---
+
+# File and folder naming conventions
+
+**Objective**: Standardize naming conventions to ensure consistency and readability across the entire codebase.
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+File and folder naming follows strict rules to ensure consistency and facilitate navigation in the project.
+
+**Global rules:**
+
+| Element                  | Convention       | Examples                               |
+| ------------------------ | ---------------- | -------------------------------------- |
+| Variables / functions    | `camelCase`      | `userName`, `fetchData`                |
+| React components         | `PascalCase`     | `CalendarGrid`, `UserProfile`          |
+| Files                    | `kebab-case`     | `calendar-grid.tsx`, `user-profile.ts` |
+| Feature folders          | Singular         | `calendar/`, `payment/` (not `calendars/`) |
+| Hooks                    | Prefix `use`     | `useCalendar`, `useAuth`               |
+| Constants                | `UPPER_SNAKE_CASE` | `MAX_FILE_SIZE`, `API_BASE_URL`      |
+| Types / Interfaces       | `PascalCase`     | `User`, `ApiResponse`, `CalendarEvent` |
+| Test files               | `.test.tsx`      | `calendar-grid.test.tsx`               |
+| Barrel (index)           | `index.ts`       | `index.ts` in each folder              |
+
+**Specific conventions:**
+
+- **React components**: the file and component share the same name.
+  - File: `calendar-grid.tsx`
+  - Component: `CalendarGrid`
+- **Hooks**: always prefixed with `use`.
+  - File: `use-calendar.ts`
+  - Hook: `useCalendar`
+- **Feature folders**: always **singular**.
+  - `features/calendar/` ✅
+  - `features/calendars/` ❌
+- **Configuration files**: explicit names.
+  - `env.ts`, `api.ts`, `constants.ts`
+
+## Practical Implementation Example
+
+**Calendar feature:**
+
+```
+features/calendar/
+ ├─ components/
+ │   ├─ calendar-grid.tsx         → export CalendarGrid
+ │   ├─ calendar-grid.test.tsx
+ │   ├─ calendar-event.tsx        → export CalendarEvent
+ │   └─ index.ts
+ ├─ hooks/
+ │   ├─ use-calendar.ts           → export useCalendar
+ │   ├─ use-calendar.test.ts
+ │   └─ index.ts
+ ├─ services/
+ │   ├─ calendar-api.ts           → export fetchEvents, createEvent
+ │   └─ index.ts
+ ├─ types.ts                      → export CalendarEvent, CalendarFilters
+ └─ index.ts
+```
+
+**File `calendar-grid.tsx`:**
+
+```ts
+export function CalendarGrid() {
+  return <div>Calendar Grid</div>;
+}
+```
+
+**File `use-calendar.ts`:**
+
+```ts
+export function useCalendar() {
+  // Hook logic
+}
+```
+
+**File `constants.ts`:**
+
+```ts
+export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+export const API_BASE_URL = "https://api.example.com";
+```
+
+## Variants or Exceptions
+
+- Shadcn UI components follow their own naming convention (e.g., `button.tsx`).
+- Next.js files (App Router) follow Next.js conventions (`page.tsx`, `layout.tsx`, `route.ts`).
+
+## Links / References
+
+- [Next.js File Conventions](https://nextjs.org/docs/app/building-your-application/routing)
+- [React Naming Conventions](https://react.dev/learn/your-first-component#naming-a-component)
+- Internal documentation: `references.md`

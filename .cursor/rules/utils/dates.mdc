@@ -1,0 +1,174 @@
+---
+id: utils/dates
+category: utils
+title: Helpers pour dates
+status: draft
+tags: [utils, dates, time, formatting, manipulation]
+---
+
+# Helpers pour dates
+
+**Objectif** : Standardiser la gestion et le formatage des dates pour garantir cohérence et fiabilité.
+**Contexte** : À appliquer pour standardiser les helpers et fonctions partagées.
+
+## Explication
+
+La gestion des dates est complexe (fuseaux horaires, formats, calculs). Les helpers de dates doivent utiliser les API natives modernes (`Date`, `Intl.DateTimeFormat`) ou des librairies éprouvées.
+
+**Fonctions courantes :**
+
+* **formatDate** : formater une date
+* **parseDate** : parser une chaîne en Date
+* **addDays / subDays** : ajouter/soustraire des jours
+* **differenceInDays** : calculer la différence entre deux dates
+* **isToday / isPast / isFuture** : vérifications temporelles
+* **startOfDay / endOfDay** : début/fin de journée
+
+**Bonnes pratiques :**
+
+* Utiliser `Date` natif ou `date-fns` (éviter `moment.js`)
+* Toujours gérer les fuseaux horaires
+* Utiliser `Intl.DateTimeFormat` pour le formatage localisé
+* Valider les entrées (dates invalides)
+
+## Exemple de mise en pratique
+
+```ts
+// src/utils/dates/format-date.ts
+
+type DateFormatOptions = {
+  locale?: string;
+  format?: 'short' | 'long' | 'numeric';
+};
+
+/**
+ * Formate une date
+ * @param date - Date à formater
+ * @param options - Options de formatage
+ * @returns Date formatée
+ */
+export function formatDate(date: Date, options: DateFormatOptions = {}): string {
+  const { locale = 'fr-FR', format = 'long' } = options;
+
+  const formatOptions: Intl.DateTimeFormatOptions =
+    format === 'short'
+      ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+      : format === 'numeric'
+      ? { dateStyle: 'short' }
+      : { day: 'numeric', month: 'long', year: 'numeric' };
+
+  return new Intl.DateTimeFormat(locale, formatOptions).format(date);
+}
+
+// src/utils/dates/add-days.ts
+
+/**
+ * Ajoute des jours à une date
+ * @param date - Date de départ
+ * @param days - Nombre de jours à ajouter
+ * @returns Nouvelle date
+ */
+export function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+// src/utils/dates/difference-in-days.ts
+
+/**
+ * Calcule la différence en jours entre deux dates
+ * @param dateLeft - Date de gauche
+ * @param dateRight - Date de droite
+ * @returns Différence en jours
+ */
+export function differenceInDays(dateLeft: Date, dateRight: Date): number {
+  const diffTime = dateLeft.getTime() - dateRight.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// src/utils/dates/is-today.ts
+
+/**
+ * Vérifie si une date est aujourd'hui
+ * @param date - Date à vérifier
+ * @returns true si la date est aujourd'hui
+ */
+export function isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+}
+
+// src/utils/dates/is-past.ts
+
+/**
+ * Vérifie si une date est dans le passé
+ * @param date - Date à vérifier
+ * @returns true si la date est passée
+ */
+export function isPast(date: Date): boolean {
+  return date.getTime() < Date.now();
+}
+
+// src/utils/dates/start-of-day.ts
+
+/**
+ * Retourne le début de la journée (00:00:00)
+ * @param date - Date
+ * @returns Début de journée
+ */
+export function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+// src/utils/dates/format-relative.ts
+
+/**
+ * Formate une date de manière relative (il y a X jours)
+ * @param date - Date à formater
+ * @param locale - Locale
+ * @returns Date formatée relativement
+ */
+export function formatRelative(date: Date, locale: string = 'fr'): string {
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const diffInDays = differenceInDays(date, new Date());
+
+  if (Math.abs(diffInDays) < 7) {
+    return rtf.format(diffInDays, 'day');
+  }
+
+  if (Math.abs(diffInDays) < 30) {
+    return rtf.format(Math.floor(diffInDays / 7), 'week');
+  }
+
+  return rtf.format(Math.floor(diffInDays / 30), 'month');
+}
+
+// src/utils/dates/index.ts
+export { formatDate } from './format-date';
+export { addDays } from './add-days';
+export { differenceInDays } from './difference-in-days';
+export { isToday } from './is-today';
+export { isPast } from './is-past';
+export { startOfDay } from './start-of-day';
+export { formatRelative } from './format-relative';
+```
+
+## Variantes ou exceptions
+
+* Pour des manipulations complexes, utiliser `date-fns` ou `dayjs`
+* Pour les fuseaux horaires avancés, utiliser `date-fns-tz` ou `luxon`
+* Les applications internationales nécessitent une gestion fine des locales
+
+## Liens / Références
+
+* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+* https://date-fns.org/
+* https://day.js.org/
+* Documentation interne : `/docs/utils.md`

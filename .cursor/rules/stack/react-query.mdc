@@ -1,0 +1,176 @@
+---
+alwaysApply: false
+description: Fetching, caching, and mutations management
+---
+
+# React Query
+
+**Objective**: Standardize React Query usage for fetching, caching, and mutations in projects.
+
+**Context**: To apply for standardizing the use of this technology in projects.
+
+## Explanation
+
+React Query (TanStack Query) is used to manage **server state**: fetching, caching, synchronization, and mutations. It replaces manual API calls and simplifies remote data management.
+
+**Key Principles:**
+
+- **Source of truth**: React Query is the source of truth for server data.
+- **Queries**: use `useQuery` for fetching.
+- **Mutations**: use `useMutation` for create/update/delete operations.
+- **Query keys**: always use consistent and descriptive query keys.
+- **Invalidation**: invalidate queries after a mutation to automatically refetch.
+- **Centralized configuration**: define the `QueryClient` in `lib/react-query.ts`.
+
+**Installation :**
+
+```bash
+npm install @tanstack/react-query
+```
+
+## Practical Implementation Example
+
+**QueryClient configuration:**
+
+```ts
+// src/lib/react-query.ts
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+```
+
+**Provider dans le layout :**
+
+```tsx
+// app/layout.tsx
+"use client";
+
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/react-query";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+**Query simple :**
+
+```ts
+// src/features/users/hooks/use-users.ts
+import { useQuery } from "@tanstack/react-query";
+import { fetchUsers } from "../services";
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  });
+}
+```
+
+**Query with parameters:**
+
+```ts
+// src/features/users/hooks/use-user.ts
+import { useQuery } from "@tanstack/react-query";
+import { fetchUserById } from "../services";
+
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: ["users", userId],
+    queryFn: () => fetchUserById(userId),
+    enabled: !!userId, // Only fetch if userId exists
+  });
+}
+```
+
+**Mutation :**
+
+```ts
+// src/features/users/hooks/use-create-user.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createUser } from "../services";
+import type { CreateUserInput } from "../types";
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateUserInput) => createUser(data),
+    onSuccess: () => {
+      // Invalidate users list to automatically refetch
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+```
+
+**Usage dans un composant :**
+
+```tsx
+// src/features/users/components/user-list.tsx
+"use client";
+
+import { useUsers } from "../hooks";
+
+export function UserList() {
+  const { data: users, isLoading, error } = useUsers();
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {users?.map((user) => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+**Consistent query keys:**
+
+```ts
+// src/features/users/queries.ts
+export const userKeys = {
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
+  list: (filters: string) => [...userKeys.lists(), { filters }] as const,
+  details: () => [...userKeys.all, "detail"] as const,
+  detail: (id: string) => [...userKeys.details(), id] as const,
+};
+
+// Usage
+useQuery({
+  queryKey: userKeys.detail(userId),
+  queryFn: () => fetchUserById(userId),
+});
+```
+
+## Variants or Exceptions
+
+- Lightweight and volatile data (frequent polling) can use SWR instead.
+- Very simple projects without many API calls can do without React Query.
+
+## Links / References
+
+- [TanStack Query Documentation](https://tanstack.com/query/latest)
+- [Query Keys](https://tanstack.com/query/latest/docs/react/guides/query-keys)
+- [Mutations](https://tanstack.com/query/latest/docs/react/guides/mutations)

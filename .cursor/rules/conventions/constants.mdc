@@ -1,0 +1,295 @@
+---
+alwaysApply: false
+description: Normalize the definition and naming of constants
+---
+
+# Definition and Naming of Constants
+
+**Objective**: Normalize the definition and naming of constants to ensure consistency and readability.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Constants help avoid magic values (magic numbers/strings) and facilitate maintenance. They must follow strict naming and organization conventions.
+
+**Rules:**
+
+- **Naming**: `UPPER_SNAKE_CASE` for global constants.
+- **camelCase**: for local constants or configuration objects.
+- **Organization**: global constants in `config/constants.ts`, feature constants in the feature.
+- **Typing**: always type constants with `as const` for objects.
+- **No magic values**: always name important numeric or string values.
+
+## Practical Implementation Example
+
+**Global constants:**
+
+```ts
+// src/config/constants.ts
+
+// ✅ Good: UPPER_SNAKE_CASE for global constants
+export const APP_NAME = "Lyksia";
+export const APP_VERSION = "1.0.0";
+export const APP_DESCRIPTION = "Modern web application";
+
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_FILE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+
+export const PAGINATION_DEFAULT_LIMIT = 20;
+export const PAGINATION_MAX_LIMIT = 100;
+
+export const API_TIMEOUT = 10000; // 10 seconds
+export const RETRY_ATTEMPTS = 3;
+export const DEBOUNCE_DELAY = 300;
+
+// ❌ Bad: camelCase or other conventions
+export const appName = "Lyksia"; // camelCase
+export const maxFileSize = 5242880; // Magic value without readable calculation
+```
+
+**Configuration constants (objects):**
+
+```ts
+// src/config/constants.ts
+
+// ✅ Good: camelCase for configuration objects + as const
+export const paginationConfig = {
+  defaultLimit: 20,
+  maxLimit: 100,
+  defaultPage: 1,
+} as const;
+
+export const fileUploadConfig = {
+  maxSize: 5 * 1024 * 1024,
+  allowedTypes: ["image/png", "image/jpeg", "image/webp"],
+  allowedExtensions: [".png", ".jpg", ".jpeg", ".webp"],
+} as const;
+
+export const apiConfig = {
+  timeout: 10000,
+  retryAttempts: 3,
+  retryDelay: 1000,
+} as const;
+
+// Types automatically inferred
+type FileUploadConfig = typeof fileUploadConfig;
+// { maxSize: 5242880, allowedTypes: readonly ["image/png", ...], ... }
+```
+
+**Enumerated constants:**
+
+```ts
+// src/features/users/constants.ts
+
+// ✅ Good: use enum or union types + as const
+export enum UserRole {
+  Admin = "ADMIN",
+  User = "USER",
+  Guest = "GUEST",
+}
+
+// Or with as const
+export const USER_ROLES = {
+  ADMIN: "ADMIN",
+  USER: "USER",
+  GUEST: "GUEST",
+} as const;
+
+export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
+// ✅ Good: union types for states
+export const ORDER_STATUS = {
+  PENDING: "pending",
+  PROCESSING: "processing",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
+} as const;
+
+export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
+```
+
+**Feature constants:**
+
+```ts
+// src/features/calendar/constants.ts
+
+export const CALENDAR_VIEWS = {
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
+  YEAR: "year",
+} as const;
+
+export const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+export const DEFAULT_EVENT_DURATION = 60; // minutes
+export const MIN_EVENT_DURATION = 15;
+export const MAX_EVENT_DURATION = 480; // 8 hours
+```
+
+**Validation constants:**
+
+```ts
+// src/features/auth/constants.ts
+
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 30;
+
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const VALIDATION_MESSAGES = {
+  PASSWORD_TOO_SHORT: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+  PASSWORD_TOO_LONG: `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
+  PASSWORD_INVALID: "Password must contain uppercase, lowercase, number and special character",
+  EMAIL_INVALID: "Invalid email address",
+} as const;
+```
+
+**Route constants:**
+
+```ts
+// src/config/routes.ts
+
+export const ROUTES = {
+  HOME: "/",
+  DASHBOARD: "/dashboard",
+  LOGIN: "/login",
+  REGISTER: "/register",
+  PROFILE: "/profile",
+  SETTINGS: "/settings",
+  USERS: {
+    LIST: "/users",
+    DETAIL: (id: string) => `/users/${id}`,
+    EDIT: (id: string) => `/users/${id}/edit`,
+  },
+  PRODUCTS: {
+    LIST: "/products",
+    DETAIL: (id: string) => `/products/${id}`,
+    CREATE: "/products/new",
+  },
+} as const;
+
+// Usage
+router.push(ROUTES.DASHBOARD);
+router.push(ROUTES.USERS.DETAIL("123"));
+```
+
+**Style constants:**
+
+```ts
+// src/config/theme.ts
+
+export const COLORS = {
+  PRIMARY: {
+    50: "#f0f9ff",
+    100: "#e0f2fe",
+    500: "#3b82f6",
+    900: "#1e3a8a",
+  },
+  SUCCESS: "#22c55e",
+  ERROR: "#ef4444",
+  WARNING: "#f59e0b",
+} as const;
+
+export const BREAKPOINTS = {
+  SM: 640,
+  MD: 768,
+  LG: 1024,
+  XL: 1280,
+  "2XL": 1536,
+} as const;
+
+export const SPACING = {
+  XS: 4,
+  SM: 8,
+  MD: 16,
+  LG: 24,
+  XL: 32,
+} as const;
+```
+
+**Local constants (in a component):**
+
+```tsx
+// src/features/products/components/product-form.tsx
+
+// ✅ Good: local constants in the component
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 500;
+const MIN_PRICE = 0;
+const MAX_PRICE = 999999;
+
+export function ProductForm() {
+  // Using constants
+  return (
+    <form>
+      <input maxLength={MAX_NAME_LENGTH} />
+      <textarea maxLength={MAX_DESCRIPTION_LENGTH} />
+      <input type="number" min={MIN_PRICE} max={MAX_PRICE} />
+    </form>
+  );
+}
+```
+
+**Avoid magic values:**
+
+```ts
+// ❌ Bad: magic values
+function calculateDiscount(price: number): number {
+  if (price > 100) {
+    return price * 0.1;
+  }
+  return 0;
+}
+
+setTimeout(() => {
+  console.log("Delayed");
+}, 5000);
+
+// ✅ Good: named constants
+const DISCOUNT_THRESHOLD = 100;
+const DISCOUNT_RATE = 0.1;
+const NOTIFICATION_DELAY = 5000;
+
+function calculateDiscount(price: number): number {
+  if (price > DISCOUNT_THRESHOLD) {
+    return price * DISCOUNT_RATE;
+  }
+  return 0;
+}
+
+setTimeout(() => {
+  console.log("Delayed");
+}, NOTIFICATION_DELAY);
+```
+
+## Variants or Exceptions
+
+- Obvious values (0, 1, true, false) can be used directly.
+- Constants very specific to a component can remain in the component.
+
+## Links / References
+
+- [TypeScript Const Assertions](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html#const-assertions)
+- [Avoid Magic Numbers](https://refactoring.guru/replace-magic-number-with-symbolic-constant)
+- Internal documentation: `references.md`

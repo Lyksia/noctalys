@@ -1,0 +1,153 @@
+---
+id: quality/prettier
+category: quality
+title: Prettier
+status: draft
+tags: [quality, prettier, formatting, code-style]
+---
+
+# Prettier
+
+**Objectif** : Définir les règles de formatage Prettier pour garantir une cohérence visuelle du code.
+**Contexte** : À appliquer pour assurer la qualité et la fiabilité du code.
+
+## Explication
+
+Prettier est l'outil de formatage automatique officiel pour garantir un style de code uniforme. Contrairement à ESLint qui analyse la qualité du code, Prettier se concentre uniquement sur la présentation (indentation, sauts de ligne, guillemets, etc.).
+
+**Principes fondamentaux :**
+
+* **Formatage automatique** : pas de débat sur le style
+* **Intégration éditeur** : formatage à la sauvegarde
+* **CI/CD** : vérification du formatage dans la pipeline
+* **Cohérence** : même rendu pour tous les développeurs
+* **Pas de pre-commit hooks** : contrôle par CI uniquement
+
+**Configuration standardisée :**
+
+* **Guillemets simples** : cohérence avec JavaScript moderne
+* **Point-virgule** : toujours présent pour éviter les bugs subtils
+* **Largeur de ligne** : 100 caractères (compromis lisibilité/écran)
+* **Indentation** : 2 espaces
+* **Trailing commas** : ES5 (objets et tableaux)
+* **Fin de ligne** : LF (Unix)
+
+**Fichiers formatés :**
+
+* TypeScript/JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`)
+* JSON (`.json`)
+* Markdown (`.md`, `.mdx`)
+* CSS (`.css`, `.scss`)
+* YAML (`.yml`, `.yaml`)
+
+**Bonnes pratiques :**
+
+* Intégrer Prettier dans l'éditeur pour un feedback immédiat
+* Formater automatiquement à la sauvegarde
+* Exécuter `prettier --check` dans la CI
+* Ne jamais désactiver Prettier (sauf cas exceptionnels)
+* Coordonner les règles Prettier et ESLint (pas de conflits)
+
+**Erreurs à éviter :**
+
+* Désactiver Prettier pour contourner des problèmes de formatage
+* Modifier les règles par préférence personnelle
+* Formater manuellement au lieu d'utiliser l'outil
+* Avoir des configurations différentes entre projets
+* Ne pas synchroniser avec ESLint
+
+## Exemple de mise en pratique
+
+```json
+// .prettierrc
+{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "useTabs": false,
+  "printWidth": 100,
+  "trailingComma": "es5",
+  "endOfLine": "lf",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "jsxSingleQuote": false,
+  "plugins": [
+    "prettier-plugin-tailwindcss"
+  ]
+}
+
+// .prettierignore
+node_modules
+dist
+build
+.next
+coverage
+*.min.js
+*.bundle.js
+package-lock.json
+pnpm-lock.yaml
+
+// package.json
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "prettier-plugin-tailwindcss": "^0.5.0"
+  }
+}
+
+// .vscode/settings.json
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
+
+// .eslintrc.js (intégration avec ESLint)
+module.exports = {
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'prettier', // Désactive les règles ESLint en conflit avec Prettier
+  ],
+};
+```
+
+**Commandes utiles :**
+
+```bash
+# Formater tout le projet
+npm run format
+
+# Vérifier le formatage sans modifier
+npm run format:check
+
+# Formater un fichier spécifique
+npx prettier --write src/components/button.tsx
+
+# Vérifier un dossier spécifique
+npx prettier --check "src/**/*.{ts,tsx}"
+```
+
+## Variantes ou exceptions
+
+* Les fichiers générés automatiquement doivent être ignorés via `.prettierignore`
+* Les fichiers de configuration tiers (ex: `.github/workflows/*.yml`) peuvent avoir leur propre style
+* Pour des projets legacy, migrer progressivement en formatant fichier par fichier
+* Les blocks de code dans les commentaires peuvent nécessiter `<!-- prettier-ignore -->`
+
+## Liens / Références
+
+* https://prettier.io/docs/en/
+* https://prettier.io/docs/en/options.html
+* https://github.com/prettier/prettier-vscode
+* https://github.com/tailwindlabs/prettier-plugin-tailwindcss
+* Documentation interne : `/docs/code-quality.md`

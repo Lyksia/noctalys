@@ -1,0 +1,142 @@
+// ===================================
+// NOCTALYS PRISMA SCHEMA
+// ===================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================================
+// ENUMS
+// ===================================
+
+enum Genre {
+  FANTASY
+  SCI_FI
+  HORROR
+  ROMANCE
+  MYSTERY
+  THRILLER
+  POETRY
+  OTHER
+}
+
+enum Status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ===================================
+// MODELS
+// ===================================
+
+model Fiction {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  summary     String    @db.Text
+  coverImage  String?
+  genre       Genre?
+  status      Status    @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chapters Chapter[]
+
+  @@index([status, publishedAt])
+  @@index([slug])
+  @@map("fictions")
+}
+
+model Chapter {
+  id            String    @id @default(cuid())
+  fictionId     String
+  chapterNumber Int
+  title         String
+  content       String    @db.Text
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  fiction Fiction @relation(fields: [fictionId], references: [id], onDelete: Cascade)
+
+  @@unique([fictionId, chapterNumber])
+  @@index([fictionId, chapterNumber])
+  @@map("chapters")
+}
+
+model Track {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  description String?   @db.Text
+  audioUrl    String
+  duration    Int // Duration in seconds
+  coverImage  String?
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+  @@index([slug])
+  @@map("tracks")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String // Hashed password
+  name      String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String? @db.Text
+  accessToken       String? @db.Text
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String? @db.Text
+  sessionState      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}

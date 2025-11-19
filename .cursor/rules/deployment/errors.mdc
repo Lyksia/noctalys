@@ -1,0 +1,212 @@
+---
+id: deployment/errors
+category: deployment
+title: Errors
+status: draft
+tags: [errors, debugging, rollback, build-failures, monitoring]
+---
+
+# Errors
+
+**Objectif** : Gérer les erreurs de build et de déploiement, et définir les stratégies de rollback.
+**Contexte** : À appliquer pour les étapes de déploiement et intégration continue.
+
+## Explication
+
+Les erreurs de déploiement peuvent survenir à différentes étapes :
+
+| Étape           | Type d'erreur                      | Solution                                    |
+| --------------- | ---------------------------------- | ------------------------------------------- |
+| Build           | TypeScript, ESLint, compilation    | Fixer les erreurs de code                   |
+| Install         | Dépendances manquantes             | Vérifier `package.json` et `package-lock`   |
+| Environment     | Variables manquantes               | Ajouter les variables dans Vercel           |
+| Runtime         | Erreurs à l'exécution              | Rollback + fix + redéploiement              |
+| Database        | Migration échouée                  | Rollback DB + fix migration                 |
+| API             | Services externes inaccessibles    | Health checks + fallback                    |
+
+**Stratégies de gestion :**
+- **Build failures** : CI bloque le merge, donc l'erreur ne doit jamais atteindre production.
+- **Déploiement échoué** : Vercel conserve la version précédente active.
+- **Erreurs runtime** : Rollback immédiat vers la dernière version stable.
+- **Monitoring** : Utiliser les logs Vercel et des outils de monitoring (Sentry, LogRocket).
+
+## Exemple de mise en pratique
+
+**Erreurs de build courantes :**
+
+```bash
+# 1. Erreur TypeScript
+Error: Type 'string' is not assignable to type 'number'
+→ Fixer le typage dans le fichier concerné
+
+# 2. ESLint error
+Error: 'useState' is not defined (react/hooks)
+→ Ajouter l'import manquant
+
+# 3. Module not found
+Error: Cannot find module '@/components/Button'
+→ Vérifier le chemin et les alias
+
+# 4. Environment variable manquante
+Error: process.env.DATABASE_URL is undefined
+→ Ajouter la variable dans Vercel Dashboard
+```
+
+**Gestion des erreurs de build (next.config.js) :**
+
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // ⚠️ Ne pas ignorer les erreurs (non recommandé)
+  typescript: {
+    ignoreBuildErrors: false, // Toujours false
+  },
+  eslint: {
+    ignoreDuringBuilds: false, // Toujours false
+  },
+};
+
+module.exports = nextConfig;
+```
+
+**Health check endpoint :**
+
+```ts
+// app/api/health/route.ts
+import { env } from '@/config/env';
+
+export async function GET() {
+  const checks = {
+    timestamp: new Date().toISOString(),
+    status: 'ok',
+    environment: process.env.VERCEL_ENV || 'development',
+    checks: {
+      database: await checkDatabase(),
+      env: checkEnvVariables(),
+    },
+  };
+  
+  const allPassed = Object.values(checks.checks).every(Boolean);
+  const status = allPassed ? 200 : 503;
+  
+  return Response.json(checks, { status });
+}
+
+async function checkDatabase() {
+  try {
+    // Test de connexion DB
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function checkEnvVariables() {
+  const required = ['DATABASE_URL', 'STRIPE_SECRET_KEY'];
+  return required.every(key => !!process.env[key]);
+}
+```
+
+**Rollback sur Vercel :**
+
+```bash
+# Via dashboard Vercel
+Deployments → [Cliquer sur un déploiement précédent] → Promote to Production
+
+# Via CLI
+vercel rollback [deployment-url]
+
+# Via API
+curl -X POST https://api.vercel.com/v13/deployments/[id]/promote \
+  -H "Authorization: Bearer $VERCEL_TOKEN"
+```
+
+**Monitoring des erreurs avec Sentry :**
+
+```ts
+// app/error.tsx (Error Boundary)
+'use client';
+
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+  
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+**Logs Vercel :**
+
+```bash
+# Via CLI
+vercel logs [deployment-url]
+
+# Logs en temps réel
+vercel logs --follow
+
+# Filtrer par type
+vercel logs --output=build
+vercel logs --output=runtime
+```
+
+**Configuration des notifications d'erreurs (vercel.json) :**
+
+```json
+{
+  "github": {
+    "silent": false,
+    "autoJobCancelation": true
+  }
+}
+```
+
+**Stratégie de déploiement sûre :**
+
+```
+1. CI vérifie le code (lint, tests, build)
+   ❌ Erreur → Bloque le merge
+   
+2. Merge vers dev → Deploy staging
+   ❌ Erreur → Rollback automatique
+   ✅ OK → Tests manuels sur staging
+   
+3. PR dev → main → Deploy production
+   ❌ Erreur → Rollback vers version précédente
+   ✅ OK → Monitoring pendant 15 min
+   
+4. Si erreurs en production
+   → Rollback immédiat
+   → Fix en local
+   → Re-déploiement via dev → main
+```
+
+## Variantes ou exceptions
+
+- **Déploiement progressif** : Utiliser des feature flags pour activer progressivement.
+- **Canary deployments** : Déployer sur un sous-ensemble d'utilisateurs d'abord.
+- **Blue-Green deployment** : Maintenir deux environnements de production.
+- **Alertes automatiques** : Webhook Vercel → Slack/Discord en cas d'échec.
+- **Retry automatique** : Configurer des retries pour les services externes.
+
+## Liens / Références
+
+- [Vercel Deployments](https://vercel.com/docs/concepts/deployments/overview)
+- [Next.js Error Handling](https://nextjs.org/docs/app/building-your-application/routing/error-handling)
+- [Sentry for Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
+- [Vercel Logs](https://vercel.com/docs/concepts/observability/logs)
+- Documentation interne : `.cursor/docs/references.md`

@@ -1,0 +1,344 @@
+---
+alwaysApply: false
+description: Fix the naming and structure of tests (.test.tsx)
+---
+
+# Test Naming and Structure
+
+**Objective**: Fix the naming and structure of test files to ensure consistency and maintainability.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+Tests must follow strict naming and structure conventions to facilitate reading and maintenance.
+
+**Rules:**
+
+- **Extension**: `.test.tsx` for components, `.test.ts` for TypeScript code.
+- **Location**: next to the tested file (colocation).
+- **Naming**: same name as the tested file with `.test` before the extension.
+- **Structure**: `describe` → `it` → assertions.
+- **Test naming**: descriptive phrases in present tense.
+
+## Practical Implementation Example
+
+**File structure:**
+
+```
+features/calendar/
+ ├─ components/
+ │   ├─ calendar-grid.tsx
+ │   ├─ calendar-grid.test.tsx    ✅ Next to tested file
+ │   ├─ calendar-event.tsx
+ │   └─ calendar-event.test.tsx
+ ├─ hooks/
+ │   ├─ use-calendar.ts
+ │   └─ use-calendar.test.ts       ✅ Same name + .test
+ └─ services/
+     ├─ calendar-api.ts
+     └─ calendar-api.test.ts
+```
+
+**Component test:**
+
+```tsx
+// src/features/users/components/user-card.test.tsx
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { UserCard } from "./user-card";
+
+// describe: test group for a component/function
+describe("UserCard", () => {
+  // it: individual test with descriptive phrase
+  it("renders user name and email", () => {
+    render(<UserCard name="John Doe" email="john@example.com" />);
+
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("john@example.com")).toBeInTheDocument();
+  });
+
+  it("renders avatar when provided", () => {
+    render(<UserCard name="John Doe" email="john@example.com" avatar="avatar.jpg" />);
+
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("src", "avatar.jpg");
+    expect(img).toHaveAttribute("alt", "John Doe");
+  });
+
+  it("does not render avatar when not provided", () => {
+    render(<UserCard name="John Doe" email="john@example.com" />);
+
+    const img = screen.queryByRole("img");
+    expect(img).not.toBeInTheDocument();
+  });
+
+  it("calls onClick handler when clicked", () => {
+    const handleClick = vi.fn();
+    render(<UserCard name="John Doe" email="john@example.com" onClick={handleClick} />);
+
+    const card = screen.getByRole("article");
+    fireEvent.click(card);
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies custom className", () => {
+    render(<UserCard name="John Doe" email="john@example.com" className="custom-class" />);
+
+    const card = screen.getByRole("article");
+    expect(card).toHaveClass("custom-class");
+  });
+});
+```
+
+**Hook test:**
+
+```ts
+// src/features/auth/hooks/use-auth.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { useAuth } from "./use-auth";
+import * as authService from "../services/auth-service";
+
+// Mock services
+vi.mock("../services/auth-service");
+
+describe("useAuth", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("starts with no user and loading state", () => {
+    const { result } = renderHook(() => useAuth());
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it("loads current user on mount", async () => {
+    const mockUser = { id: "1", email: "john@example.com" };
+    vi.mocked(authService.getCurrentUser).mockResolvedValue(mockUser);
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.user).toEqual(mockUser);
+      expect(result.current.isLoading).toBe(false);
+    });
+  });
+
+  it("logs in user successfully", async () => {
+    const mockUser = { id: "1", email: "john@example.com" };
+    vi.mocked(authService.loginUser).mockResolvedValue(mockUser);
+
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => {
+      await result.current.login({ email: "john@example.com", password: "password" });
+    });
+
+    expect(result.current.user).toEqual(mockUser);
+    expect(result.current.isAuthenticated).toBe(true);
+  });
+
+  it("handles login error", async () => {
+    const error = new Error("Invalid credentials");
+    vi.mocked(authService.loginUser).mockRejectedValue(error);
+
+    const { result } = renderHook(() => useAuth());
+
+    await expect(async () => {
+      await act(async () => {
+        await result.current.login({ email: "john@example.com", password: "wrong" });
+      });
+    }).rejects.toThrow("Invalid credentials");
+
+    expect(result.current.user).toBeNull();
+  });
+
+  it("logs out user", async () => {
+    const mockUser = { id: "1", email: "john@example.com" };
+    vi.mocked(authService.getCurrentUser).mockResolvedValue(mockUser);
+    vi.mocked(authService.logoutUser).mockResolvedValue();
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.user).toEqual(mockUser);
+    });
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.isAuthenticated).toBe(false);
+  });
+});
+```
+
+**Service test:**
+
+```ts
+// src/features/users/services/users-api.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { fetchUsers, createUser, updateUser, deleteUser } from "./users-api";
+import { apiClient } from "@/lib/axios";
+
+vi.mock("@/lib/axios");
+
+describe("users-api", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("fetchUsers", () => {
+    it("fetches users successfully", async () => {
+      const mockUsers = [
+        { id: "1", name: "John", email: "john@example.com" },
+        { id: "2", name: "Jane", email: "jane@example.com" },
+      ];
+
+      vi.mocked(apiClient.get).mockResolvedValue({ data: mockUsers });
+
+      const users = await fetchUsers();
+
+      expect(apiClient.get).toHaveBeenCalledWith("/users");
+      expect(users).toEqual(mockUsers);
+    });
+
+    it("throws error when request fails", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new Error("Network error"));
+
+      await expect(fetchUsers()).rejects.toThrow("Network error");
+    });
+  });
+
+  describe("createUser", () => {
+    it("creates user successfully", async () => {
+      const input = { name: "John", email: "john@example.com" };
+      const mockUser = { id: "1", ...input };
+
+      vi.mocked(apiClient.post).mockResolvedValue({ data: mockUser });
+
+      const user = await createUser(input);
+
+      expect(apiClient.post).toHaveBeenCalledWith("/users", input);
+      expect(user).toEqual(mockUser);
+    });
+  });
+
+  describe("updateUser", () => {
+    it("updates user successfully", async () => {
+      const id = "1";
+      const input = { name: "John Updated" };
+      const mockUser = { id, name: "John Updated", email: "john@example.com" };
+
+      vi.mocked(apiClient.patch).mockResolvedValue({ data: mockUser });
+
+      const user = await updateUser(id, input);
+
+      expect(apiClient.patch).toHaveBeenCalledWith(`/users/${id}`, input);
+      expect(user).toEqual(mockUser);
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("deletes user successfully", async () => {
+      const id = "1";
+      vi.mocked(apiClient.delete).mockResolvedValue({ data: null });
+
+      await deleteUser(id);
+
+      expect(apiClient.delete).toHaveBeenCalledWith(`/users/${id}`);
+    });
+  });
+});
+```
+
+**Test organization:**
+
+```ts
+describe("ComponentName", () => {
+  // Setup and mocks
+  beforeEach(() => {
+    // Reset mocks
+  });
+
+  afterEach(() => {
+    // Cleanup
+  });
+
+  // Tests grouped by functionality
+  describe("rendering", () => {
+    it("renders with default props", () => {});
+    it("renders with custom props", () => {});
+  });
+
+  describe("user interactions", () => {
+    it("handles click event", () => {});
+    it("handles form submission", () => {});
+  });
+
+  describe("edge cases", () => {
+    it("handles missing data gracefully", () => {});
+    it("handles errors", () => {});
+  });
+
+  describe("accessibility", () => {
+    it("has correct ARIA labels", () => {});
+    it("is keyboard navigable", () => {});
+  });
+});
+```
+
+**Test naming:**
+
+```ts
+// ✅ Good: descriptive phrases in present tense
+it("renders user name");
+it("calls onClick when button is clicked");
+it("shows error message when validation fails");
+it("disables submit button while loading");
+
+// ❌ Bad: not descriptive enough
+it("works");
+it("test 1");
+it("should work correctly");
+```
+
+**Tests with snapshots:**
+
+```tsx
+// src/features/products/components/product-card.test.tsx
+import { describe, it, expect } from "vitest";
+import { render } from "@testing-library/react";
+import { ProductCard } from "./product-card";
+
+describe("ProductCard", () => {
+  it("matches snapshot", () => {
+    const product = {
+      id: "1",
+      name: "Product Name",
+      price: 99.99,
+      image: "product.jpg",
+    };
+
+    const { container } = render(<ProductCard product={product} />);
+
+    expect(container.firstChild).toMatchSnapshot();
+  });
+});
+```
+
+## Variants or Exceptions
+
+- Integration tests can be in a separate `__tests__/` folder.
+- Existing projects with other conventions can migrate progressively.
+
+## Links / References
+
+- [Vitest Documentation](https://vitest.dev/)
+- [Testing Library Best Practices](https://testing-library.com/docs/queries/about)
+- Internal documentation: `references.md`

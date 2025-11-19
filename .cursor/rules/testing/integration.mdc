@@ -1,0 +1,136 @@
+---
+id: testing/integration
+category: testing
+title: Integration Tests
+status: draft
+tags: [testing, integration-tests, react-query, providers]
+---
+
+# Integration Tests
+
+**Objective**: Define conventions for integration tests to validate interaction between multiple modules.
+**Context**: To be applied to ensure code quality and reliability.
+
+## Explanation
+
+Integration tests verify that multiple code units work correctly together. Unlike unit tests that completely isolate the tested code, integration tests simulate realistic scenarios with minimal mocks.
+
+**Fundamental Principles:**
+
+* **Complete flows**: test the interaction between components, hooks, and services
+* **Limited mocks**: only mock external dependencies (API, database)
+* **Real providers**: use actual React contexts, QueryClient, Router
+* **User scenarios**: simulate realistic journeys
+* **Behavioral assertions**: verify results visible to the user
+
+**What to test in integration:**
+
+* Component + hook + service
+* Data flows with React Query (fetch, cache, mutations)
+* Navigation between pages/views
+* Forms with validation and submission
+* Global state management (Context + components)
+* Complex interactions (drag & drop, modals, filters)
+
+**Golden Rule:**
+
+Avoid **overmocking**: don't mock internal project dependencies. Only mock network calls and third-party services (Stripe, external APIs).
+
+**Provider Configuration:**
+
+Integration tests often require wrappers for React Query, Router, or Context. Create reusable helpers in `test/utils/`.
+
+## Practical Implementation Example
+
+```tsx
+// test/utils/render-with-providers.tsx
+import { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+export function renderWithProviders(
+  ui: ReactElement,
+  options?: RenderOptions
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  }
+
+  return render(ui, { wrapper: Wrapper, ...options });
+}
+
+// src/features/calendar/components/calendar-view.test.tsx
+import { describe, it, expect, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { renderWithProviders } from '@/test/utils/render-with-providers';
+import { CalendarView } from './calendar-view';
+import * as calendarService from '../services/calendar.service';
+
+// Mock only the external API call
+vi.mock('../services/calendar.service');
+
+describe('CalendarView integration', () => {
+  it('should fetch events and display them', async () => {
+    const mockEvents = [
+      { id: '1', title: 'Réunion', date: new Date('2025-10-27') },
+      { id: '2', title: 'Formation', date: new Date('2025-10-28') },
+    ];
+
+    vi.mocked(calendarService.fetchEvents).mockResolvedValue(mockEvents);
+
+    renderWithProviders(<CalendarView />);
+
+    // Wait for data to be loaded
+    await waitFor(() => {
+      expect(screen.getByText('Réunion')).toBeInTheDocument();
+      expect(screen.getByText('Formation')).toBeInTheDocument();
+    });
+  });
+
+  it('should add a new event when form is submitted', async () => {
+    const user = userEvent.setup();
+    vi.mocked(calendarService.fetchEvents).mockResolvedValue([]);
+    vi.mocked(calendarService.createEvent).mockResolvedValue({
+      id: '3',
+      title: 'Nouveau',
+      date: new Date('2025-10-29'),
+    });
+
+    renderWithProviders(<CalendarView />);
+
+    // Fill and submit the form
+    await user.type(screen.getByLabelText(/titre/i), 'Nouveau');
+    await user.click(screen.getByRole('button', { name: /ajouter/i }));
+
+    // Verify the event appears
+    await waitFor(() => {
+      expect(screen.getByText('Nouveau')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+## Variants or Exceptions
+
+* For very simple flows, unit tests may suffice
+* E2E tests can replace some integration tests for critical journeys
+* In projects without a backend, mock `fetch` or `axios` directly
+
+## Links / References
+
+* https://kentcdodds.com/blog/write-tests
+* https://testing-library.com/docs/react-testing-library/setup#custom-render
+* https://tanstack.com/query/latest/docs/react/guides/testing
+* Internal documentation: `/test/README.md`

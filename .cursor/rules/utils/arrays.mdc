@@ -1,0 +1,193 @@
+---
+id: utils/arrays
+category: utils
+title: Helpers pour tableaux
+status: draft
+tags: [utils, arrays, manipulation, typescript]
+---
+
+# Helpers pour tableaux
+
+**Objectif** : Standardiser la manipulation de tableaux pour garantir performance et réutilisabilité.
+**Contexte** : À appliquer pour standardiser les helpers et fonctions partagées.
+
+## Explication
+
+Les helpers de tableaux facilitent les opérations courantes (groupBy, unique, chunk) tout en préservant le typage TypeScript et en optimisant les performances.
+
+**Fonctions courantes :**
+
+* **unique** : retirer les doublons
+* **groupBy** : regrouper par clé
+* **chunk** : découper en morceaux
+* **shuffle** : mélanger aléatoirement
+* **sortBy** : trier par propriété
+* **partition** : séparer selon une condition
+
+## Exemple de mise en pratique
+
+```ts
+// src/utils/arrays/unique.ts
+
+/**
+ * Retire les doublons d'un tableau
+ * @param array - Tableau avec doublons
+ * @returns Tableau sans doublons
+ */
+export function unique<T>(array: T[]): T[] {
+  return [...new Set(array)];
+}
+
+// src/utils/arrays/unique-by.ts
+
+/**
+ * Retire les doublons selon une clé
+ * @param array - Tableau
+ * @param keyFn - Fonction retournant la clé d'unicité
+ * @returns Tableau sans doublons
+ */
+export function uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): T[] {
+  const seen = new Set<K>();
+  return array.filter((item) => {
+    const key = keyFn(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// src/utils/arrays/group-by.ts
+
+/**
+ * Regroupe les éléments par clé
+ * @param array - Tableau à regrouper
+ * @param keyFn - Fonction retournant la clé de regroupement
+ * @returns Objet avec éléments regroupés
+ */
+export function groupBy<T, K extends string | number>(
+  array: T[],
+  keyFn: (item: T) => K
+): Record<K, T[]> {
+  return array.reduce(
+    (acc, item) => {
+      const key = keyFn(item);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    },
+    {} as Record<K, T[]>
+  );
+}
+
+// src/utils/arrays/chunk.ts
+
+/**
+ * Découpe un tableau en morceaux
+ * @param array - Tableau à découper
+ * @param size - Taille des morceaux
+ * @returns Tableau de tableaux
+ */
+export function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// src/utils/arrays/shuffle.ts
+
+/**
+ * Mélange aléatoirement un tableau
+ * @param array - Tableau à mélanger
+ * @returns Tableau mélangé
+ */
+export function shuffle<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// src/utils/arrays/sort-by.ts
+
+/**
+ * Trie un tableau par propriété
+ * @param array - Tableau à trier
+ * @param keyFn - Fonction retournant la valeur de tri
+ * @param order - Ordre de tri
+ * @returns Tableau trié
+ */
+export function sortBy<T>(
+  array: T[],
+  keyFn: (item: T) => string | number,
+  order: 'asc' | 'desc' = 'asc'
+): T[] {
+  return [...array].sort((a, b) => {
+    const aVal = keyFn(a);
+    const bVal = keyFn(b);
+    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+    return order === 'asc' ? comparison : -comparison;
+  });
+}
+
+// src/utils/arrays/partition.ts
+
+/**
+ * Sépare un tableau selon une condition
+ * @param array - Tableau à partitionner
+ * @param predicate - Fonction de test
+ * @returns Tuple [éléments vrais, éléments faux]
+ */
+export function partition<T>(
+  array: T[],
+  predicate: (item: T) => boolean
+): [T[], T[]] {
+  const truthy: T[] = [];
+  const falsy: T[] = [];
+  array.forEach((item) => {
+    if (predicate(item)) {
+      truthy.push(item);
+    } else {
+      falsy.push(item);
+    }
+  });
+  return [truthy, falsy];
+}
+
+// src/utils/arrays/sum-by.ts
+
+/**
+ * Calcule la somme par propriété
+ * @param array - Tableau
+ * @param keyFn - Fonction retournant la valeur numérique
+ * @returns Somme des valeurs
+ */
+export function sumBy<T>(array: T[], keyFn: (item: T) => number): number {
+  return array.reduce((sum, item) => sum + keyFn(item), 0);
+}
+
+// src/utils/arrays/index.ts
+export { unique } from './unique';
+export { uniqueBy } from './unique-by';
+export { groupBy } from './group-by';
+export { chunk } from './chunk';
+export { shuffle } from './shuffle';
+export { sortBy } from './sort-by';
+export { partition } from './partition';
+export { sumBy } from './sum-by';
+```
+
+## Variantes ou exceptions
+
+* Pour des manipulations complexes, utiliser `lodash` ou `ramda`
+* Les très grands tableaux nécessitent des optimisations spécifiques
+* Les opérations immuables sont préférées pour React
+
+## Liens / Références
+
+* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+* https://lodash.com/docs
+* Documentation interne : `/docs/utils.md`

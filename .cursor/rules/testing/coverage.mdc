@@ -1,0 +1,164 @@
+---
+id: testing/coverage
+category: testing
+title: Couverture de code
+status: draft
+tags: [testing, coverage, quality, metrics]
+---
+
+# Couverture de code
+
+**Objectif** : Fixer le taux de couverture attendu et définir les bonnes pratiques pour garantir une couverture de code significative.
+**Contexte** : À appliquer pour assurer la qualité et la fiabilité du code.
+
+## Explication
+
+La couverture de code mesure le pourcentage de code exécuté par les tests. Elle est un indicateur de qualité, mais ne garantit pas à elle seule la fiabilité du code. L'objectif est d'atteindre une couverture minimale de **80 %** tout en privilégiant la qualité des tests plutôt que la quantité.
+
+**Métriques de couverture :**
+
+* **Statements** : pourcentage d'instructions exécutées
+* **Branches** : pourcentage de conditions (if/else) testées
+* **Functions** : pourcentage de fonctions appelées
+* **Lines** : pourcentage de lignes exécutées
+
+**Objectifs de couverture :**
+
+* **Minimum global** : 80 %
+* **Code critique** (paiement, auth, données sensibles) : 95 %+
+* **Utilitaires et helpers** : 90 %+
+* **Composants UI simples** : 70 %+ (si pertinent)
+
+**Ce qui doit être couvert en priorité :**
+
+1. Logique métier (calculs, transformations, validations)
+2. Services et API calls
+3. Hooks personnalisés
+4. Formulaires et validation
+5. Gestion d'erreurs
+6. Fonctions utilitaires
+
+**Ce qui peut avoir une couverture moindre :**
+
+* Composants purement visuels sans logique
+* Fichiers de configuration
+* Types TypeScript
+* Code généré automatiquement
+* Fichiers de style
+
+**Bonnes pratiques :**
+
+* Exclure les fichiers non pertinents (config, types, mocks)
+* Se concentrer sur la couverture des branches (pas seulement les lignes)
+* Ajouter des tests pour les cas limites (edge cases)
+* Viser la qualité plutôt que 100 % de couverture
+* Intégrer la couverture dans la CI/CD
+* Suivre l'évolution de la couverture dans le temps
+
+**Erreurs à éviter :**
+
+* Écrire des tests juste pour augmenter la couverture
+* Ignorer les branches non couvertes
+* Viser 100 % sur du code non critique
+* Ne pas exclure les fichiers non testables
+* Tester l'implémentation au lieu du comportement
+
+## Exemple de mise en pratique
+
+```ts
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+
+      // Seuils de couverture
+      thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
+      },
+
+      // Fichiers exclus de la couverture
+      exclude: [
+        'node_modules/',
+        'test/',
+        'dist/',
+        '**/*.config.ts',
+        '**/*.d.ts',
+        '**/index.ts',          // Barrels
+        '**/*.stories.tsx',      // Storybook
+        '**/*.mock.ts',          // Mocks
+        'src/types/',            // Types globaux
+      ],
+
+      // Inclure uniquement le code source
+      include: ['src/**/*.{ts,tsx}'],
+    },
+  },
+});
+
+// package.json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:coverage:ui": "vitest --coverage --ui"
+  }
+}
+
+// .github/workflows/ci.yml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+      - run: npm run test:coverage
+
+      # Échec si couverture < 80%
+      - name: Check coverage thresholds
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "Coverage report generated"
+          fi
+```
+
+**Analyser un rapport de couverture :**
+
+```bash
+# Générer le rapport
+npm run test:coverage
+
+# Ouvrir le rapport HTML
+open coverage/index.html
+
+# Identifier les fichiers sous-couverts
+grep -A 5 "below threshold" coverage/lcov.info
+```
+
+## Variantes ou exceptions
+
+* Les projets en phase de POC peuvent avoir une couverture temporairement plus basse
+* Le code legacy peut nécessiter une migration progressive vers 80 %
+* Les composants visuels complexes peuvent nécessiter des tests E2E plutôt qu'unitaires
+* Pour du code critique (fintech, santé), viser 95 %+ avec des tests d'intégration poussés
+
+## Liens / Références
+
+* https://vitest.dev/guide/coverage.html
+* https://martinfowler.com/bliki/TestCoverage.html
+* https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#having-the-wrong-mental-model
+* Documentation interne : `/test/README.md`

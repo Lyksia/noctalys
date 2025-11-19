@@ -1,0 +1,418 @@
+---
+id: data/types
+category: data
+title: Types et schémas de données
+status: draft
+tags: [zod, prisma, typescript, validation, types]
+alwaysApply: false
+description: Define data types and schemas (Zod + Prisma)
+---
+
+# Types et schémas de données
+
+**Objectif** : Définir les types et schémas de données avec Zod et Prisma pour garantir la cohérence et la validation des données entre client et serveur.
+
+**Contexte** : À appliquer pour garantir la cohérence de la gestion de l'état et des données.
+
+## Explication
+
+Le typage et la validation des données sont essentiels pour la robustesse de l'application. Prisma génère les types depuis la base de données, et Zod valide les données entrantes et sortantes.
+
+**Principes clés :**
+
+- **Prisma pour les types de base de données** : source de vérité pour les modèles
+- **Zod pour la validation runtime** : valider les inputs utilisateur et API
+- **Types dérivés** : créer des types spécifiques pour les différents contextes (create, update, response)
+- **Séparation des responsabilités** : types globaux dans `/types`, types de feature dans `/features/*/types.ts`
+
+## Exemple de mise en pratique
+
+**Schéma Prisma :**
+
+```prisma
+// prisma/schema.prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(USER)
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+**Types de feature avec Zod :**
+
+```ts
+// src/features/users/types.ts
+import { z } from "zod";
+import type { User as PrismaUser } from "@prisma/client";
+
+// Type Prisma de base
+export type User = PrismaUser;
+
+// Schémas de validation Zod
+export const createUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  role: z.enum(["USER", "ADMIN"]).optional(),
+});
+
+export const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().min(2).optional(),
+  role: z.enum(["USER", "ADMIN"]).optional(),
+});
+
+export const userIdSchema = z.string().cuid();
+
+// Types dérivés des schémas Zod
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+// Types de réponse API
+export type UserResponse = Omit<User, "password">;
+
+export type UserWithPosts = User & {
+  posts: Post[];
+};
+```
+
+**Utilisation dans les services :**
+
+```ts
+// src/features/users/services/users-api.ts
+import { apiClient } from "@/lib/axios";
+import { createUserSchema, updateUserSchema } from "../types";
+import type { User, CreateUserInput, UpdateUserInput, UserResponse } from "../types";
+
+export async function createUser(input: CreateUserInput): Promise<UserResponse> {
+  // Valider l'input avant l'envoi
+  const validated = createUserSchema.parse(input);
+
+  const { data } = await apiClient.post<UserResponse>("/users", validated);
+  return data;
+}
+
+export async function updateUser(id: string, input: UpdateUserInput): Promise<UserResponse> {
+  const validated = updateUserSchema.parse(input);
+
+  const { data } = await apiClient.patch<UserResponse>(`/users/${id}`, validated);
+  return data;
+}
+```
+
+**Validation dans les API Routes :**
+
+```ts
+// app/api/users/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createUserSchema } from "@/features/users/types";
+import { prisma } from "@/lib/prisma";
+import { ZodError } from "zod";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Valider avec Zod
+    const validated = createUserSchema.parse(body);
+
+    // Créer dans la base
+    const user = await prisma.user.create({
+      data: validated,
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+```
+
+**Types partiels et utilitaires :**
+
+```ts
+// src/features/users/types.ts
+import type { User } from "@prisma/client";
+
+// Sélection de champs spécifiques
+export type UserSummary = Pick<User, "id" | "name" | "email">;
+
+// Exclusion de champs sensibles
+export type PublicUser = Omit<User, "password" | "resetToken">;
+
+// Rendre tous les champs optionnels
+export type PartialUser = Partial<User>;
+
+// Type pour les filtres
+export type UserFilters = {
+  role?: "USER" | "ADMIN";
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+// Type pour la réponse paginée
+export type PaginatedUsers = {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+};
+```
+
+**Schémas Zod réutilisables :**
+
+```ts
+// src/lib/zod/common-schemas.ts
+import { z } from "zod";
+
+export const emailSchema = z.string().email("Invalid email address");
+
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+export const paginationSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().max(100).default(20),
+});
+
+export const idSchema = z.string().cuid();
+
+export const dateRangeSchema = z.object({
+  from: z.date(),
+  to: z.date(),
+});
+```
+
+**Validation de formulaires :**
+
+```tsx
+// src/features/users/components/create-user-form.tsx
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createUserSchema } from "../types";
+import type { CreateUserInput } from "../types";
+
+export function CreateUserForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+  });
+
+  const onSubmit = (data: CreateUserInput) => {
+    // Les données sont déjà validées par Zod
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("email")} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input {...register("name")} />
+      {errors.name && <span>{errors.name.message}</span>}
+
+      <button type="submit">Create User</button>
+    </form>
+  );
+}
+```
+
+**Types pour les relations Prisma :**
+
+```ts
+// src/features/posts/types.ts
+import type { Post, User } from "@prisma/client";
+
+// Post avec auteur inclus
+export type PostWithAuthor = Post & {
+  author: User;
+};
+
+// Post avec compteurs
+export type PostWithCounts = Post & {
+  _count: {
+    comments: number;
+    likes: number;
+  };
+};
+
+// Combinaison de relations
+export type PostDetail = Post & {
+  author: Pick<User, "id" | "name" | "email">;
+  _count: {
+    comments: number;
+    likes: number;
+  };
+};
+```
+
+**Schémas de transformation :**
+
+```ts
+// src/features/products/types.ts
+import { z } from "zod";
+
+// Schéma serveur (snake_case)
+export const productDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price_cents: z.number(),
+  image_url: z.string().url().nullable(),
+  created_at: z.string().datetime(),
+});
+
+// Schéma client (camelCase)
+export const productSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  imageUrl: z.string().url().nullable(),
+  createdAt: z.date(),
+});
+
+export type ProductDTO = z.infer<typeof productDTOSchema>;
+export type Product = z.infer<typeof productSchema>;
+
+// Fonction de transformation
+export function transformProduct(dto: ProductDTO): Product {
+  return {
+    id: dto.id,
+    name: dto.name,
+    price: dto.price_cents / 100,
+    imageUrl: dto.image_url,
+    createdAt: new Date(dto.created_at),
+  };
+}
+```
+
+**Types globaux :**
+
+```ts
+// src/types/api.ts
+export type ApiResponse<T> = {
+  data: T;
+  message?: string;
+};
+
+export type ApiError = {
+  error: string;
+  code?: string;
+  details?: Record<string, string[]>;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
+};
+```
+
+**Validation dans Server Actions :**
+
+```ts
+// app/actions/users.ts
+"use server";
+
+import { createUserSchema } from "@/features/users/types";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export async function createUser(formData: FormData) {
+  const data = {
+    email: formData.get("email"),
+    name: formData.get("name"),
+  };
+
+  // Valider avec Zod
+  const result = createUserSchema.safeParse(data);
+
+  if (!result.success) {
+    return {
+      error: "Validation failed",
+      details: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const user = await prisma.user.create({
+    data: result.data,
+  });
+
+  revalidatePath("/users");
+
+  return { success: true, user };
+}
+```
+
+**Types d'énumération :**
+
+```ts
+// src/features/orders/types.ts
+import { z } from "zod";
+
+// Enum Zod
+export const orderStatusSchema = z.enum([
+  "PENDING",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+]);
+
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
+
+// Helper pour vérifier le type
+export function isOrderStatus(value: unknown): value is OrderStatus {
+  return orderStatusSchema.safeParse(value).success;
+}
+```
+
+## Variantes ou exceptions
+
+- Les types très simples peuvent ne pas nécessiter de validation Zod.
+- Les Server Components Next.js utilisent directement les types Prisma sans validation côté client.
+
+## Liens / Références
+
+- [Zod Documentation](https://zod.dev/)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [React Hook Form with Zod](https://react-hook-form.com/get-started#SchemaValidation)
+- Documentation interne : `references.md`

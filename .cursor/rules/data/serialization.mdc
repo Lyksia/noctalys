@@ -1,0 +1,508 @@
+---
+id: data/serialization
+category: data
+title: Sérialisation des données
+status: draft
+tags: [serialization, transformation, dto, zod]
+alwaysApply: false
+description: Handle data transformation between client and server
+---
+
+# Sérialisation des données
+
+**Objectif** : Gérer la transformation des données entre client et serveur pour assurer la cohérence et l'adaptation des formats.
+
+**Contexte** : À appliquer pour garantir la cohérence de la gestion de l'état et des données.
+
+## Explication
+
+La sérialisation transforme les données entre différents formats (API ↔ Client, Base de données ↔ Application). Elle permet d'adapter les conventions de nommage, les types et la structure des données.
+
+**Cas d'usage :**
+
+- **Conversion de casse** : snake_case (API) ↔ camelCase (Client)
+- **Transformation de types** : string ↔ Date, cents ↔ euros
+- **Nettoyage des données** : retirer les champs sensibles, null ↔ undefined
+- **Normalisation** : adapter la structure des données
+
+## Exemple de mise en pratique
+
+**DTO (Data Transfer Object) :**
+
+```ts
+// src/features/products/types.ts
+import { z } from "zod";
+
+// Schéma de l'API (snake_case)
+export const productDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price_cents: z.number(),
+  image_url: z.string().url().nullable(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+
+// Schéma client (camelCase)
+export const productSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  imageUrl: z.string().url().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type ProductDTO = z.infer<typeof productDTOSchema>;
+export type Product = z.infer<typeof productSchema>;
+```
+
+**Fonctions de transformation :**
+
+```ts
+// src/features/products/utils/transform.ts
+import type { Product, ProductDTO } from "../types";
+
+export function transformProductFromDTO(dto: ProductDTO): Product {
+  return {
+    id: dto.id,
+    name: dto.name,
+    price: dto.price_cents / 100, // Convertir centimes en euros
+    imageUrl: dto.image_url,
+    createdAt: new Date(dto.created_at),
+    updatedAt: new Date(dto.updated_at),
+  };
+}
+
+export function transformProductToDTO(product: Product): ProductDTO {
+  return {
+    id: product.id,
+    name: product.name,
+    price_cents: Math.round(product.price * 100), // Convertir euros en centimes
+    image_url: product.imageUrl,
+    created_at: product.createdAt.toISOString(),
+    updated_at: product.updatedAt.toISOString(),
+  };
+}
+```
+
+**Utilisation dans les services :**
+
+```ts
+// src/features/products/services/products-api.ts
+import { apiClient } from "@/lib/axios";
+import { productDTOSchema } from "../types";
+import { transformProductFromDTO } from "../utils/transform";
+import type { Product } from "../types";
+
+export async function fetchProducts(): Promise<Product[]> {
+  const { data } = await apiClient.get("/products");
+
+  // Valider et transformer
+  const dtos = z.array(productDTOSchema).parse(data);
+  return dtos.map(transformProductFromDTO);
+}
+
+export async function createProduct(product: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<Product> {
+  const dto = {
+    name: product.name,
+    price_cents: Math.round(product.price * 100),
+    image_url: product.imageUrl,
+  };
+
+  const { data } = await apiClient.post("/products", dto);
+
+  const validated = productDTOSchema.parse(data);
+  return transformProductFromDTO(validated);
+}
+```
+
+**Transformation générique :**
+
+```ts
+// src/utils/serialization.ts
+
+/**
+ * Convertit les clés d'un objet de snake_case à camelCase
+ */
+export function snakeToCamel<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      result[camelKey] = snakeToCamel(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      result[camelKey] = value.map((item) =>
+        typeof item === "object" ? snakeToCamel(item as Record<string, unknown>) : item
+      );
+    } else {
+      result[camelKey] = value;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Convertit les clés d'un objet de camelCase à snake_case
+ */
+export function camelToSnake<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      result[snakeKey] = camelToSnake(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      result[snakeKey] = value.map((item) =>
+        typeof item === "object" ? camelToSnake(item as Record<string, unknown>) : item
+      );
+    } else {
+      result[snakeKey] = value;
+    }
+  }
+
+  return result;
+}
+```
+
+**Intercepteur Axios pour transformation automatique :**
+
+```ts
+// src/lib/axios.ts
+import axios from "axios";
+import { snakeToCamel, camelToSnake } from "@/utils/serialization";
+
+export const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+});
+
+// Transformer les réponses (snake_case → camelCase)
+apiClient.interceptors.response.use((response) => {
+  if (response.data && typeof response.data === "object") {
+    response.data = snakeToCamel(response.data);
+  }
+  return response;
+});
+
+// Transformer les requêtes (camelCase → snake_case)
+apiClient.interceptors.request.use((config) => {
+  if (config.data && typeof config.data === "object") {
+    config.data = camelToSnake(config.data);
+  }
+  return config;
+});
+```
+
+**Nettoyage de données sensibles :**
+
+```ts
+// src/features/users/utils/sanitize.ts
+import type { User } from "@prisma/client";
+
+/**
+ * Retire les champs sensibles d'un utilisateur
+ */
+export function sanitizeUser(user: User) {
+  const { password, resetToken, resetTokenExpiry, ...sanitized } = user;
+  return sanitized;
+}
+
+export type PublicUser = ReturnType<typeof sanitizeUser>;
+```
+
+**Transformation de dates :**
+
+```ts
+// src/utils/dates.ts
+
+/**
+ * Transforme les strings ISO en objets Date récursivement
+ */
+export function parseDates<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+
+  if (typeof obj === "string") {
+    // Détecter les dates ISO
+    const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+    if (isoDateRegex.test(obj)) {
+      return new Date(obj) as T;
+    }
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(parseDates) as T;
+  }
+
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = parseDates(value);
+    }
+    return result as T;
+  }
+
+  return obj;
+}
+```
+
+**Transformation avec Zod :**
+
+```ts
+// src/features/orders/types.ts
+import { z } from "zod";
+
+const orderDTOSchema = z.object({
+  id: z.string(),
+  total_cents: z.number(),
+  created_at: z.string(),
+});
+
+// Schema avec transformation intégrée
+export const orderSchema = orderDTOSchema.transform((dto) => ({
+  id: dto.id,
+  total: dto.total_cents / 100,
+  createdAt: new Date(dto.created_at),
+}));
+
+export type Order = z.infer<typeof orderSchema>;
+
+// Utilisation
+const order = orderSchema.parse(apiResponse);
+// order.total est déjà en euros, createdAt est une Date
+```
+
+**Sérialisation pour localStorage :**
+
+```ts
+// src/utils/storage.ts
+
+/**
+ * Sérialise des données pour le stockage local
+ */
+export function serialize<T>(data: T): string {
+  return JSON.stringify(data, (key, value) => {
+    // Transformer les Dates en ISO strings
+    if (value instanceof Date) {
+      return { __type: "Date", value: value.toISOString() };
+    }
+    return value;
+  });
+}
+
+/**
+ * Désérialise des données du stockage local
+ */
+export function deserialize<T>(data: string): T {
+  return JSON.parse(data, (key, value) => {
+    // Reconstruire les Dates
+    if (value && typeof value === "object" && value.__type === "Date") {
+      return new Date(value.value);
+    }
+    return value;
+  });
+}
+```
+
+**Normalisation de données imbriquées :**
+
+```ts
+// src/features/posts/utils/normalize.ts
+import type { PostWithAuthor, Post, User } from "../types";
+
+interface NormalizedData {
+  posts: Record<string, Post>;
+  users: Record<string, User>;
+}
+
+/**
+ * Normalise les posts avec auteurs pour éviter la duplication
+ */
+export function normalizePosts(posts: PostWithAuthor[]): NormalizedData {
+  const normalized: NormalizedData = {
+    posts: {},
+    users: {},
+  };
+
+  for (const post of posts) {
+    const { author, ...postData } = post;
+
+    normalized.posts[post.id] = {
+      ...postData,
+      authorId: author.id,
+    };
+
+    normalized.users[author.id] = author;
+  }
+
+  return normalized;
+}
+
+/**
+ * Dénormalise pour reconstruire la structure originale
+ */
+export function denormalizePosts(normalized: NormalizedData): PostWithAuthor[] {
+  return Object.values(normalized.posts).map((post) => ({
+    ...post,
+    author: normalized.users[post.authorId],
+  }));
+}
+```
+
+**Transformation pour formulaires :**
+
+```ts
+// src/features/products/utils/form-transform.ts
+import type { Product } from "../types";
+
+/**
+ * Transforme un Product en valeurs de formulaire
+ */
+export function productToFormValues(product: Product) {
+  return {
+    name: product.name,
+    price: product.price.toFixed(2), // String pour l'input
+    imageUrl: product.imageUrl || "",
+  };
+}
+
+/**
+ * Transforme les valeurs du formulaire en Product
+ */
+export function formValuesToProduct(values: Record<string, unknown>): Partial<Product> {
+  return {
+    name: String(values.name),
+    price: parseFloat(String(values.price)),
+    imageUrl: values.imageUrl ? String(values.imageUrl) : null,
+  };
+}
+```
+
+**Sérialisation pour API Routes :**
+
+```ts
+// app/api/products/[id]/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { sanitizeUser } from "@/features/users/utils/sanitize";
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const product = await prisma.product.findUnique({
+    where: { id: params.id },
+    include: { author: true },
+  });
+
+  if (!product) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  // Nettoyer les données sensibles
+  const sanitized = {
+    ...product,
+    author: sanitizeUser(product.author),
+  };
+
+  return NextResponse.json(sanitized);
+}
+```
+
+**Transformer les null en undefined :**
+
+```ts
+// src/utils/null-to-undefined.ts
+
+/**
+ * Convertit récursivement les null en undefined
+ */
+export function nullToUndefined<T>(obj: T): T {
+  if (obj === null) return undefined as T;
+  if (Array.isArray(obj)) return obj.map(nullToUndefined) as T;
+  if (typeof obj === "object" && obj !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = nullToUndefined(value);
+    }
+    return result as T;
+  }
+  return obj;
+}
+```
+
+**Validation + Transformation combinées :**
+
+```ts
+// src/features/products/services/products-api.ts
+import { apiClient } from "@/lib/axios";
+import { productDTOSchema } from "../types";
+import { parseDates } from "@/utils/dates";
+import { nullToUndefined } from "@/utils/null-to-undefined";
+import type { Product } from "../types";
+
+export async function fetchProduct(id: string): Promise<Product> {
+  const { data } = await apiClient.get(`/products/${id}`);
+
+  // 1. Valider la structure
+  const validated = productDTOSchema.parse(data);
+
+  // 2. Transformer les dates
+  const withDates = parseDates(validated);
+
+  // 3. Convertir null → undefined
+  const sanitized = nullToUndefined(withDates);
+
+  // 4. Transformer snake_case → camelCase (fait par l'intercepteur)
+  return sanitized as Product;
+}
+```
+
+**Helper de transformation réutilisable :**
+
+```ts
+// src/lib/transform.ts
+import { z } from "zod";
+import { parseDates } from "@/utils/dates";
+import { nullToUndefined } from "@/utils/null-to-undefined";
+
+/**
+ * Pipeline de transformation générique
+ */
+export function transformApiResponse<TInput, TOutput>(
+  data: unknown,
+  schema: z.ZodType<TInput>,
+  transformer: (input: TInput) => TOutput
+): TOutput {
+  // 1. Valider
+  const validated = schema.parse(data);
+
+  // 2. Transformer les dates
+  const withDates = parseDates(validated);
+
+  // 3. null → undefined
+  const sanitized = nullToUndefined(withDates);
+
+  // 4. Transformation custom
+  return transformer(sanitized);
+}
+
+// Utilisation
+const product = transformApiResponse(apiData, productDTOSchema, (dto) => ({
+  id: dto.id,
+  name: dto.name,
+  price: dto.price_cents / 100,
+}));
+```
+
+## Variantes ou exceptions
+
+- Les API internes peuvent utiliser les mêmes conventions que le client (pas de transformation nécessaire).
+- Les Server Components Next.js peuvent utiliser directement les types Prisma sans transformation.
+
+## Liens / Références
+
+- [Zod Transform](https://zod.dev/?id=transform)
+- [Axios Interceptors](https://axios-http.com/docs/interceptors)
+- Documentation interne : `references.md`

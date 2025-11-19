@@ -1,0 +1,180 @@
+---
+alwaysApply: false
+description: Integration and extension of Shadcn UI components
+---
+
+# Shadcn UI
+
+**Objective**: Standardize the integration and extension of Shadcn UI components to ensure consistency and maintainability.
+
+**Context**: To apply for standardizing the use of this technology in projects.
+
+## Explanation
+
+Shadcn UI is the foundation of the design system. Components are installed locally via CLI and can be customized according to project needs.
+
+**Key Principles:**
+
+- **Local installation**: components are copied to `src/components/ui/` via CLI.
+- **Customization**: components can be modified after installation.
+- **Consistency**: respect Shadcn UI structure and conventions for custom components.
+- **Variants**: use `cva()` to manage variants.
+- **Accessibility**: all Shadcn components are accessible by default (ARIA).
+
+**Installing a component:**
+
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add input
+npx shadcn@latest add dialog
+```
+
+**Structure :**
+
+```
+src/components/ui/
+ ├─ button.tsx
+ ├─ input.tsx
+ ├─ dialog.tsx
+ ├─ card.tsx
+ └─ index.ts
+```
+
+## Practical Implementation Example
+
+**Using a Shadcn component:**
+
+```tsx
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export function LoginForm() {
+  return (
+    <form className="space-y-4">
+      <Input type="email" placeholder="Email" />
+      <Input type="password" placeholder="Password" />
+      <Button type="submit">Sign In</Button>
+    </form>
+  );
+}
+```
+
+**Customizing a Shadcn component:**
+
+```tsx
+// src/components/ui/button.tsx (après installation)
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary-500 text-white hover:bg-primary-600",
+        destructive: "bg-red-500 text-white hover:bg-red-600",
+        outline: "border border-gray-300 bg-transparent hover:bg-gray-100",
+        ghost: "hover:bg-gray-100",
+        link: "text-primary-500 underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => {
+    return (
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Button.displayName = "Button";
+```
+
+**Creating a custom component in Shadcn style:**
+
+```tsx
+// src/components/ui/stat-card.tsx
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const statCardVariants = cva(
+  "rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-800",
+  {
+    variants: {
+      variant: {
+        default: "border-gray-200 dark:border-gray-700",
+        success: "border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900",
+        danger: "border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
+
+export interface StatCardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof statCardVariants> {
+  title: string;
+  value: string | number;
+  icon?: React.ReactNode;
+}
+
+export function StatCard({
+  className,
+  variant,
+  title,
+  value,
+  icon,
+  ...props
+}: StatCardProps) {
+  return (
+    <div className={cn(statCardVariants({ variant, className }))} {...props}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+        {icon && <div className="text-gray-400">{icon}</div>}
+      </div>
+    </div>
+  );
+}
+```
+
+## Variants or Exceptions
+
+- Very feature-specific components can remain in `features/[name]/components/`.
+- Existing projects can use other UI libraries but should progressively migrate to Shadcn UI.
+
+## Links / References
+
+- [Shadcn UI Documentation](https://ui.shadcn.com/)
+- [Shadcn UI CLI](https://ui.shadcn.com/docs/cli)
+- [Radix UI (base de Shadcn)](https://www.radix-ui.com/)

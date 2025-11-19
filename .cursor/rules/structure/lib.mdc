@@ -1,0 +1,103 @@
+---
+alwaysApply: false
+description: Centralize tools and helpers related to external libraries
+---
+
+# Lib folder structure
+
+**Objective**: Centralize functions and utilities that **depend on external libraries** (React Query, Zod, Axios, etc.).
+
+**Context**: To apply for structuring projects according to a feature-first approach.
+
+## Explanation
+
+The `lib/` folder contains **wrappers**, **configurations**, and **helpers** related to external libraries.
+
+It differs from `utils/` by the **presence of third-party dependencies**: if a function imports a library, it goes in `lib/`, otherwise it goes in `utils/`.
+
+**Distinction `lib/` vs `utils/`:**
+
+| Folder   | Content                                                     | Dependencies |
+| -------- | ----------------------------------------------------------- | ------------ |
+| `lib/`   | Functions related to external libraries                     | Yes          |
+| `utils/` | Pure, reusable functions without third-party dependencies   | No           |
+
+**Examples of `lib/` content:**
+
+- `QueryClient` configuration (React Query)
+- Shared Zod schemas
+- Configured Axios instance
+- Prisma wrapper
+- Nodemailer configuration
+- Formatting helpers with `date-fns`
+
+**Organization:**
+
+```
+src/lib/
+ ├─ react-query.ts     # Configuration QueryClient
+ ├─ zod.ts             # Schémas Zod partagés
+ ├─ axios.ts           # Instance Axios configurée
+ ├─ prisma.ts          # Wrapper Prisma
+ ├─ nodemailer.ts      # Configuration Nodemailer
+ └─ index.ts           # Barrel pour exports
+```
+
+## Practical Implementation Example
+
+**File `lib/react-query.ts`:**
+
+```ts
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+```
+
+**File `lib/axios.ts`:**
+
+```ts
+import axios from "axios";
+
+export const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+```
+
+**File `lib/zod.ts`:**
+
+```ts
+import { z } from "zod";
+
+export const emailSchema = z.string().email();
+export const phoneSchema = z.string().regex(/^\+?[0-9]{10,15}$/);
+```
+
+**Import from a feature:**
+
+```ts
+import { queryClient } from "@/lib/react-query";
+import { apiClient } from "@/lib/axios";
+import { emailSchema } from "@/lib/zod";
+```
+
+## Variants or Exceptions
+
+- If a configuration is specific to a single feature, it can remain in `features/[name]/services/`.
+- Very small projects can merge `lib/` and `utils/`, but should separate them as the project grows.
+
+## Links / References
+
+- [React Query Configuration](https://tanstack.com/query/latest/docs/react/guides/important-defaults)
+- [Axios Configuration](https://axios-http.com/docs/config_defaults)
+- Internal documentation: `references.md`

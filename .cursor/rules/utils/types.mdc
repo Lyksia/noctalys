@@ -1,0 +1,173 @@
+---
+id: utils/types
+category: utils
+title: Typages utilitaires globaux
+status: draft
+tags: [utils, types, typescript, generics]
+---
+
+# Typages utilitaires globaux
+
+**Objectif** : Définir les types utilitaires globaux pour améliorer la réutilisabilité et la sécurité du typage.
+**Contexte** : À appliquer pour standardiser les helpers et fonctions partagées.
+
+## Explication
+
+Les types utilitaires facilitent la manipulation de types TypeScript et améliorent l'expérience de développement. Ils doivent être placés dans `src/types/` pour les types globaux ou `src/utils/types.ts` pour les types helpers.
+
+**Types utilitaires courants :**
+
+* **Nullable** : `T | null`
+* **Optional** : `T | undefined`
+* **DeepPartial** : rendre toutes les propriétés optionnelles en profondeur
+* **Prettify** : améliorer l'affichage des types
+* **PartialBy** : rendre certaines propriétés optionnelles
+* **RequiredBy** : rendre certaines propriétés requises
+
+## Exemple de mise en pratique
+
+```ts
+// src/types/utils.ts
+
+/**
+ * Rend un type nullable
+ */
+export type Nullable<T> = T | null;
+
+/**
+ * Rend un type optionnel
+ */
+export type Optional<T> = T | undefined;
+
+/**
+ * Rend toutes les propriétés optionnelles en profondeur
+ */
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+/**
+ * Améliore l'affichage des types dans l'IDE
+ */
+export type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
+/**
+ * Rend certaines propriétés optionnelles
+ */
+export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+/**
+ * Rend certaines propriétés requises
+ */
+export type RequiredBy<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
+
+/**
+ * Extrait les propriétés d'un type donné
+ */
+export type PropertiesOfType<T, V> = {
+  [K in keyof T]: T[K] extends V ? K : never;
+}[keyof T];
+
+/**
+ * Type pour les valeurs d'un objet
+ */
+export type ValueOf<T> = T[keyof T];
+
+/**
+ * Type pour les clés d'un type union
+ */
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
+
+/**
+ * Type pour les fonctions asynchrones
+ */
+export type AsyncFunction<T extends any[] = any[], R = any> = (
+  ...args: T
+) => Promise<R>;
+
+/**
+ * Type pour les handlers d'événements
+ */
+export type EventHandler<E = Event> = (event: E) => void;
+
+/**
+ * Type pour les ID
+ */
+export type ID = string | number;
+
+/**
+ * Type pour les timestamps
+ */
+export type Timestamp = number;
+
+/**
+ * Type pour les données paginées
+ */
+export type Paginated<T> = {
+  data: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+/**
+ * Type pour les résultats d'API
+ */
+export type ApiResult<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+/**
+ * Type pour les états de chargement
+ */
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+/**
+ * Type pour les états asynchrones
+ */
+export type AsyncState<T, E = Error> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: E };
+
+// Usage dans le code
+import type { Nullable, Paginated, ApiResult } from '@/types/utils';
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: Nullable<string>; // avatar peut être null
+};
+
+type UsersResponse = Paginated<User>;
+
+async function fetchUsers(): Promise<ApiResult<User[]>> {
+  try {
+    const users = await api.get('/users');
+    return { success: true, data: users };
+  } catch (error) {
+    return { success: false, error: error as Error };
+  }
+}
+```
+
+## Variantes ou exceptions
+
+* Les types complexes peuvent nécessiter des librairies comme `type-fest`
+* Les types spécifiques à une feature restent dans `features/[feature]/types.ts`
+* Les types générés (Prisma, GraphQL) sont exclus de cette règle
+
+## Liens / Références
+
+* https://www.typescriptlang.org/docs/handbook/utility-types.html
+* https://github.com/sindresorhus/type-fest
+* Documentation interne : `/docs/typescript.md`

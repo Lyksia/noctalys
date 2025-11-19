@@ -1,26 +1,396 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/* ===================================
+   NOCTALYS DESIGN SYSTEM
+   Tailwind CSS V4 Configuration
+   ================================ */
+
+@theme {
+  /* ─────────────────────────────────
+     MOON PALETTE - Monochrome Silver
+     ───────────────────────────────── */
+  --color-moon-50: #fafbfc;
+  --color-moon-100: #f0f2f5;
+  --color-moon-200: #d8dde3;
+  --color-moon-300: #b8c1cc;
+  --color-moon-400: #8f9baa;
+  --color-moon-500: #667085;
+  --color-moon-600: #4a5568;
+  --color-moon-700: #2d3748;
+  --color-moon-800: #1a202c;
+  --color-moon-900: #0f1419;
+  --color-moon-950: #070a0f;
+
+  /* ─────────────────────────────────
+     ACCENT COLORS - Desaturated Only
+     ───────────────────────────────── */
+  --color-accent-primary: #a0aec0;
+  --color-accent-glow: #e2e8f0;
+  --color-accent-muted: #718096;
+
+  /* ─────────────────────────────────
+     STATUS COLORS - Very Pale
+     ───────────────────────────────── */
+  --color-status-success: #9ae6b4;
+  --color-status-warning: #fbd38d;
+  --color-status-error: #fc8181;
+  --color-status-info: #90cdf4;
+
+  /* ─────────────────────────────────
+     SEMANTIC TOKENS
+     ───────────────────────────────── */
+  --color-background: var(--color-moon-950);
+  --color-foreground: var(--color-moon-100);
+  --color-card: var(--color-moon-900);
+  --color-card-foreground: var(--color-moon-100);
+  --color-popover: var(--color-moon-900);
+  --color-popover-foreground: var(--color-moon-100);
+  --color-primary: var(--color-accent-primary);
+  --color-primary-foreground: var(--color-moon-950);
+  --color-secondary: var(--color-moon-800);
+  --color-secondary-foreground: var(--color-moon-100);
+  --color-muted: var(--color-moon-800);
+  --color-muted-foreground: var(--color-moon-400);
+  --color-accent: var(--color-accent-muted);
+  --color-accent-foreground: var(--color-moon-100);
+  --color-destructive: var(--color-status-error);
+  --color-destructive-foreground: var(--color-moon-100);
+  --color-border: var(--color-moon-800);
+  --color-input: var(--color-moon-800);
+  --color-ring: var(--color-accent-glow);
+
+  /* ─────────────────────────────────
+     SHADOWS - Subtle Halos
+     ───────────────────────────────── */
+  --shadow-glow-sm: 0 0 10px rgba(226, 232, 240, 0.2);
+  --shadow-glow: 0 0 20px rgba(226, 232, 240, 0.3);
+  --shadow-glow-lg: 0 0 30px rgba(226, 232, 240, 0.4);
+  --shadow-moonlight: 0 4px 24px rgba(160, 174, 192, 0.2);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), var(--shadow-glow-sm);
+
+  /* ─────────────────────────────────
+     BORDER RADIUS
+     ───────────────────────────────── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* ─────────────────────────────────
+     SPACING
+     ───────────────────────────────── */
+  --spacing-section: 5rem;
+  --spacing-container: 2rem;
+
+  /* ─────────────────────────────────
+     TYPOGRAPHY - Font Families
+     ───────────────────────────────── */
+  --font-family-sans: var(--font-inter);
+  --font-family-serif: var(--font-lora);
+  --font-family-mono: var(--font-jetbrains);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ===================================
+   GLOBAL STYLES
+   ================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-family-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===================================
+   NOISE TEXTURE (Grain Effect)
+   ================================ */
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.03;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ===================================
+   ANIMATIONS
+   ================================ */
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    box-shadow: var(--shadow-glow-sm);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@keyframes float-subtle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* ===================================
+   UTILITY CLASSES
+   ================================ */
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-container);
+  padding-right: var(--spacing-container);
+}
+
+.section {
+  padding-top: var(--spacing-section);
+  padding-bottom: var(--spacing-section);
+}
+
+.glow-card {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-card:hover {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    var(--shadow-glow);
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+/* ===================================
+   FOCUS STYLES (Accessibility)
+   ================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent-glow);
+  outline-offset: 2px;
+}
+
+/* ===================================
+   SELECTION STYLES
+   ================================ */
+
+::selection {
+  background-color: var(--color-accent-primary);
+  color: var(--color-moon-950);
+}
+
+::-moz-selection {
+  background-color: var(--color-accent-primary);
+  color: var(--color-moon-950);
+}
+
+/* ===================================
+   SCROLLBAR STYLES
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-moon-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-moon-700);
+  border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-moon-600);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

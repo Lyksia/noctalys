@@ -1,0 +1,295 @@
+---
+alwaysApply: false
+description: Structure React functional components (imports, hooks, return)
+---
+
+# React Component Structure
+
+**Objective**: Standardize the internal structure of React functional components to ensure consistency and readability.
+
+**Context**: To apply for unifying code style and conventions.
+
+## Explanation
+
+All React components must follow a consistent internal structure that facilitates reading and maintenance. The order of sections is always the same.
+
+**Standard component structure:**
+
+1. **Imports** (external → internal → relative)
+2. **Types / Interfaces**
+3. **Internal constants**
+4. **Component declaration**
+5. **React Hooks**
+6. **Internal functions (handlers, computed values)**
+7. **useEffect and side effects**
+8. **Early returns (guards)**
+9. **Return (JSX)**
+
+## Practical Implementation Example
+
+**Well-structured complete component:**
+
+```tsx
+// 1. IMPORTS
+// External (libraries)
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+
+// Internal (project)
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/features/auth/hooks";
+
+// Relative (feature)
+import { fetchUserProfile } from "../services";
+import type { UserProfile } from "../types";
+
+// 2. TYPES / INTERFACES
+interface UserProfileFormProps {
+  userId: string;
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
+// 3. INTERNAL CONSTANTS
+const MAX_NAME_LENGTH = 50;
+const DEBOUNCE_DELAY = 300;
+
+// 4. COMPONENT DECLARATION
+export function UserProfileForm({ userId, onSuccess, onError }: UserProfileFormProps) {
+  // 5. REACT HOOKS
+  const router = useRouter();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 6. INTERNAL FUNCTIONS (handlers, computed values)
+  const isFormValid = useMemo(() => {
+    return name.length > 0 && name.length <= MAX_NAME_LENGTH;
+  }, [name]);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    if (errors.name) {
+      setErrors((prev) => ({ ...prev, name: "" }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isFormValid) {
+      setErrors({ name: "Name is required" });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await updateUserProfile(userId, { name });
+      onSuccess?.();
+      router.push("/profile");
+    } catch (error) {
+      const err = error as Error;
+      onError?.(err);
+      setErrors({ general: err.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 7. useEffect AND SIDE EFFECTS
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const data = await fetchUserProfile(userId);
+        setProfile(data);
+        setName(data.name);
+      } catch (error) {
+        console.error("Failed to load profile", error);
+      }
+    }
+
+    loadProfile();
+  }, [userId]);
+
+  // 8. EARLY RETURNS (guards)
+  if (!user) {
+    return <div>Please log in</div>;
+  }
+
+  if (!profile) {
+    return <div>Loading profile...</div>;
+  }
+
+  // 9. RETURN (JSX)
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Input value={name} onChange={handleNameChange} placeholder="Name" maxLength={MAX_NAME_LENGTH} />
+        {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+      </div>
+
+      {errors.general && <div className="text-red-500">{errors.general}</div>}
+
+      <Button type="submit" disabled={isLoading || !isFormValid}>
+        {isLoading ? "Saving..." : "Save Profile"}
+      </Button>
+    </form>
+  );
+}
+```
+
+**Simple component:**
+
+```tsx
+// 1. Imports
+import { Button } from "@/components/ui/button";
+
+// 2. Types
+interface WelcomeMessageProps {
+  name: string;
+}
+
+// 3. Component
+export function WelcomeMessage({ name }: WelcomeMessageProps) {
+  return (
+    <div>
+      <h1>Welcome, {name}!</h1>
+      <Button>Get Started</Button>
+    </div>
+  );
+}
+```
+
+**Component with computed values:**
+
+```tsx
+import { useMemo } from "react";
+import type { Product } from "../types";
+
+interface ProductCardProps {
+  product: Product;
+}
+
+export function ProductCard({ product }: ProductCardProps) {
+  // Computed values with useMemo
+  const discountedPrice = useMemo(() => {
+    if (product.discount) {
+      return product.price * (1 - product.discount / 100);
+    }
+    return product.price;
+  }, [product.price, product.discount]);
+
+  const formattedPrice = useMemo(() => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(discountedPrice);
+  }, [discountedPrice]);
+
+  return (
+    <div>
+      <h3>{product.name}</h3>
+      <p>{formattedPrice}</p>
+      {product.discount && <span className="text-green-500">-{product.discount}%</span>}
+    </div>
+  );
+}
+```
+
+**Component with multiple handlers:**
+
+```tsx
+import { useState } from "react";
+
+interface CounterProps {
+  initialValue?: number;
+  step?: number;
+  min?: number;
+  max?: number;
+}
+
+export function Counter({ initialValue = 0, step = 1, min, max }: CounterProps) {
+  const [count, setCount] = useState(initialValue);
+
+  // Group handlers together
+  const handleIncrement = () => {
+    setCount((prev) => {
+      const next = prev + step;
+      return max !== undefined ? Math.min(next, max) : next;
+    });
+  };
+
+  const handleDecrement = () => {
+    setCount((prev) => {
+      const next = prev - step;
+      return min !== undefined ? Math.max(next, min) : next;
+    });
+  };
+
+  const handleReset = () => {
+    setCount(initialValue);
+  };
+
+  return (
+    <div>
+      <button onClick={handleDecrement}>-</button>
+      <span>{count}</span>
+      <button onClick={handleIncrement}>+</button>
+      <button onClick={handleReset}>Reset</button>
+    </div>
+  );
+}
+```
+
+**Component with cleanup:**
+
+```tsx
+import { useEffect, useState } from "react";
+
+export function Timer() {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+
+    // Cleanup function
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div>Elapsed: {seconds}s</div>;
+}
+```
+
+**Component with refs:**
+
+```tsx
+import { useRef, useEffect } from "react";
+
+export function AutoFocusInput() {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return <input ref={inputRef} type="text" placeholder="Auto-focused" />;
+}
+```
+
+## Variants or Exceptions
+
+- Very simple components (< 10 lines) can omit certain sections.
+- Next.js Server Components don't use hooks.
+- Components with lots of logic can be broken down into custom hooks.
+
+## Links / References
+
+- [React Component Patterns](https://react.dev/learn/thinking-in-react)
+- [React Hooks Best Practices](https://react.dev/reference/react)
+- Internal documentation: `references.md`
