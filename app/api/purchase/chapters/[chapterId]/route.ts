@@ -122,9 +122,21 @@ export async function POST(
       description: `Achat: ${chapter.fiction.title} - ${chapter.title}`,
     });
 
-    // Créer l'entrée de purchase en pending
-    await prisma.chapterPurchase.create({
-      data: {
+    // Créer ou mettre à jour l'entrée de purchase en pending
+    // Utiliser upsert pour éviter les race conditions avec le webhook
+    await prisma.chapterPurchase.upsert({
+      where: {
+        userId_chapterId: {
+          userId: session.user.id,
+          chapterId: chapterId,
+        },
+      },
+      update: {
+        stripePaymentIntentId: paymentIntent.id,
+        amount: chapter.price,
+        status: "pending",
+      },
+      create: {
         userId: session.user.id,
         chapterId: chapterId,
         stripePaymentIntentId: paymentIntent.id,
