@@ -98,7 +98,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update publishedAt if status changes to PUBLISHED
-    const updateData: any = { ...validatedData };
+    const updateData: Record<string, unknown> = { ...validatedData };
     if (validatedData.status === "PUBLISHED" && !existingFiction.publishedAt) {
       updateData.publishedAt = new Date();
     } else if (validatedData.status === "DRAFT") {

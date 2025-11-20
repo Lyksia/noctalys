@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Button, Card, CardHeader, CardContent, CardFiction, CardTrack } from "@/ui";
+import { Button, Card, CardHeader, CardFiction, CardTrack } from "@/ui";
 import { prisma } from "@/lib/prisma";
 import { generateOrganizationSchema, generateWebSiteSchema } from "@/lib/json-ld";
 
@@ -78,12 +78,12 @@ export default async function HomePage() {
               <h1 className="text-moon-50 text-center font-serif text-4xl leading-tight font-semibold tracking-tight md:text-6xl">
                 Quand la nuit tombe,
                 <br />
-                <span className="text-moon-200">les histoires s'éveillent</span>
+                <span className="text-moon-200">les histoires s&apos;éveillent</span>
               </h1>
 
               <p className="text-moon-300 mx-auto max-w-2xl text-center text-lg leading-relaxed md:text-xl">
                 Dans le silence de la nuit, loin du tumulte du jour, un espace se dessine où les
-                mots prennent vie et les mélodies s'élèvent. Bienvenue sur{" "}
+                mots prennent vie et les mélodies s&apos;élèvent. Bienvenue sur{" "}
                 <span className="text-moon-100 font-serif font-semibold">Noctalys</span>.
               </p>
             </div>
@@ -109,15 +109,15 @@ export default async function HomePage() {
               <div className="text-moon-300 flex flex-col gap-4 leading-relaxed">
                 <p>
                   Chaque fiction est une porte ouverte vers un ailleurs. Des récits tissés avec
-                  soin, découpés en chapitres qui s'offrent à vous comme les phases d'une lune
-                  croissante.
+                  soin, découpés en chapitres qui s&apos;offrent à vous comme les phases d&apos;une
+                  lune croissante.
                 </p>
                 <p>
-                  Ici, pas de précipitation. Le temps s'étire, les mots résonnent. Vous avancez à
-                  votre rythme, guidé par la lueur argentée de votre curiosité.
+                  Ici, pas de précipitation. Le temps s&apos;étire, les mots résonnent. Vous avancez
+                  à votre rythme, guidé par la lueur argentée de votre curiosité.
                 </p>
                 <p className="text-moon-400 text-sm italic">
-                  "Dans l'obscurité, chaque mot devient une étoile."
+                  &quot;Dans l&apos;obscurité, chaque mot devient une étoile.&quot;
                 </p>
               </div>
 
@@ -170,15 +170,15 @@ export default async function HomePage() {
               <div className="text-moon-300 flex flex-col gap-4 leading-relaxed">
                 <p>
                   Fermez les yeux. Laissez les notes vous envelopper comme un voile de brume
-                  nocturne. Chaque composition est née dans l'intimité de la nuit, pour accompagner
-                  vos instants de contemplation.
+                  nocturne. Chaque composition est née dans l&apos;intimité de la nuit, pour
+                  accompagner vos instants de contemplation.
                 </p>
                 <p>
                   Des mélodies douces qui ne cherchent pas à remplir le silence, mais à le sublimer.
                   Une bande sonore pour vos lectures, vos rêveries, vos errances nocturnes.
                 </p>
                 <p className="text-moon-400 text-sm italic">
-                  "La musique est le silence entre les notes."
+                  &quot;La musique est le silence entre les notes.&quot;
                 </p>
               </div>
 
@@ -316,10 +316,10 @@ export default async function HomePage() {
 
             <div className="flex flex-col gap-6">
               <h2 className="text-moon-100 font-serif text-3xl font-semibold md:text-4xl">
-                L'aventure commence maintenant
+                L&apos;aventure commence maintenant
               </h2>
               <p className="text-moon-300 text-lg leading-relaxed">
-                La nuit n'attend que vous. Ouvrez la porte, franchissez le seuil. Les histoires
+                La nuit n&apos;attend que vous. Ouvrez la porte, franchissez le seuil. Les histoires
                 murmurent déjà votre nom, et les mélodies préparent leur premier accord.
               </p>
             </div>
@@ -336,7 +336,7 @@ export default async function HomePage() {
 
             {/* Citation finale */}
             <p className="text-moon-500 mt-8 text-sm italic">
-              "Dans chaque nuit, une histoire attend d'être découverte."
+              &quot;Dans chaque nuit, une histoire attend d&apos;être découverte.&quot;
             </p>
           </div>
         </div>

@@ -7,7 +7,6 @@ import {
   Input,
   Label,
   Card,
-  CardHeader,
   CardContent,
   TipTapEditor,
   Dialog,
@@ -32,7 +31,13 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
   const router = useRouter();
   const { fictionId, chapterId } = use(params);
   const [fiction, setFiction] = useState<{ id: string; title: string } | null>(null);
-  const [chapter, setChapter] = useState<any>(null);
+  const [chapter, setChapter] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    chapterNumber: number;
+    publishedAt: Date | null;
+  } | null>(null);
   const [chapterNumber, setChapterNumber] = useState<number>(1);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -63,7 +68,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
           return;
         }
         const chapters = await chapterRes.json();
-        const currentChapter = chapters.find((ch: any) => ch.id === chapterId);
+        const currentChapter = chapters.find((ch: { id: string }) => ch.id === chapterId);
 
         if (!currentChapter) {
           toast.error("Chapitre introuvable");
@@ -146,10 +151,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
       toast.success("Chapitre mis à jour");
       router.push(`/admin/fictions/${fictionId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        const zodError = error as { errors: Array<{ message: string }> };
+        zodError.errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {
@@ -194,10 +200,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
       toast.success("Chapitre publié");
       router.push(`/admin/fictions/${fictionId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error publishing:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        const zodError = error as { errors: Array<{ message: string }> };
+        zodError.errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {

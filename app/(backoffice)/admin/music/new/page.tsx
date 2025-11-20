@@ -39,7 +39,7 @@ export default function NewMusicPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 

@@ -74,7 +74,16 @@ const components: Components = {
   ),
 
   // Code blocks
-  code: ({ inline, className, children, ...props }: any) => {
+  code: ({
+    inline,
+    className,
+    children,
+    ...props
+  }: {
+    inline?: boolean;
+    className?: string;
+    children?: React.ReactNode;
+  }) => {
     if (inline) {
       return (
         <code

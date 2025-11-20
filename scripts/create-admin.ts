@@ -25,14 +25,14 @@ const prisma = new PrismaClient();
 async function askPassword(rl: readline.Interface, prompt: string): Promise<string> {
   return new Promise((resolve) => {
     const stdin = process.stdin;
-    const originalMuted = (stdin as any)._writeToOutput;
+    const originalMuted = (stdin as { _writeToOutput?: () => void })._writeToOutput;
 
     // Mute l'output pour ne pas afficher le mot de passe
-    (stdin as any)._writeToOutput = function () {};
+    (stdin as { _writeToOutput?: () => void })._writeToOutput = function () {};
 
     rl.question(prompt).then((answer: string) => {
       // Restore l'output
-      (stdin as any)._writeToOutput = originalMuted;
+      (stdin as { _writeToOutput?: () => void })._writeToOutput = originalMuted;
       console.log(""); // Nouvelle ligne après le mot de passe
       resolve(answer);
     });

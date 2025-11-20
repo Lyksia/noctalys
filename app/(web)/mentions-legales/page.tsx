@@ -32,9 +32,7 @@ export default function LegalPage() {
                   <h2 className="text-moon-100 mb-4 font-serif text-2xl font-semibold">
                     1. Éditeur du site
                   </h2>
-                  <p className="text-moon-300 leading-relaxed">
-                    Le site Noctalys est édité par :
-                  </p>
+                  <p className="text-moon-300 leading-relaxed">Le site Noctalys est édité par :</p>
                   <ul className="text-moon-300 list-disc pl-6">
                     <li>Nom : Noctalys</li>
                     <li>Email : contact@noctalys.fr</li>
@@ -48,9 +46,7 @@ export default function LegalPage() {
                   <h2 className="text-moon-100 mb-4 font-serif text-2xl font-semibold">
                     2. Hébergement
                   </h2>
-                  <p className="text-moon-300 leading-relaxed">
-                    Le site est hébergé par :
-                  </p>
+                  <p className="text-moon-300 leading-relaxed">Le site est hébergé par :</p>
                   <ul className="text-moon-300 list-disc pl-6">
                     <li>Vercel Inc.</li>
                     <li>340 S Lemon Ave #4133, Walnut, CA 91789, USA</li>
@@ -65,8 +61,9 @@ export default function LegalPage() {
                     3. Propriété intellectuelle
                   </h2>
                   <p className="text-moon-300 leading-relaxed">
-                    L'ensemble des contenus présents sur le site Noctalys (textes, fictions,
-                    musiques, images, graphismes, logo, etc.) sont protégés par le droit d'auteur.
+                    L&apos;ensemble des contenus présents sur le site Noctalys (textes, fictions,
+                    musiques, images, graphismes, logo, etc.) sont protégés par le droit
+                    d&apos;auteur.
                   </p>
                   <p className="text-moon-300 leading-relaxed">
                     Toute reproduction, représentation, modification, publication, transmission ou
@@ -83,17 +80,17 @@ export default function LegalPage() {
                   </h2>
                   <p className="text-moon-300 leading-relaxed">
                     Conformément au Règlement Général sur la Protection des Données (RGPD), vous
-                    disposez d'un droit d'accès, de rectification et de suppression de vos données
-                    personnelles.
+                    disposez d&apos;un droit d&apos;accès, de rectification et de suppression de vos
+                    données personnelles.
                   </p>
                   <p className="text-moon-300 leading-relaxed">
-                    Pour exercer ces droits, vous pouvez nous contacter à l'adresse email :
+                    Pour exercer ces droits, vous pouvez nous contacter à l&apos;adresse email :
                     contact@noctalys.fr
                   </p>
                   <p className="text-moon-300 leading-relaxed">
                     Les données collectées sur ce site sont uniquement utilisées pour la gestion de
-                    votre compte utilisateur et l'administration du site. Elles ne sont en aucun
-                    cas transmises à des tiers.
+                    votre compte utilisateur et l&apos;administration du site. Elles ne sont en
+                    aucun cas transmises à des tiers.
                   </p>
                 </CardContent>
               </Card>
@@ -106,7 +103,7 @@ export default function LegalPage() {
                   <p className="text-moon-300 leading-relaxed">
                     Le site utilise des cookies essentiels au fonctionnement technique
                     (authentification, préférences utilisateur). Aucun cookie de tracking ou
-                    publicitaire n'est utilisé.
+                    publicitaire n&apos;est utilisé.
                   </p>
                 </CardContent>
               </Card>
@@ -117,9 +114,10 @@ export default function LegalPage() {
                     6. Responsabilité
                   </h2>
                   <p className="text-moon-300 leading-relaxed">
-                    Noctalys s'efforce d'assurer l'exactitude et la mise à jour des informations
-                    diffusées sur ce site. Toutefois, Noctalys ne peut garantir l'exactitude,
-                    la précision ou l'exhaustivité des informations mises à disposition.
+                    Noctalys s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des
+                    informations diffusées sur ce site. Toutefois, Noctalys ne peut garantir
+                    l&apos;exactitude, la précision ou l&apos;exhaustivité des informations mises à
+                    disposition.
                   </p>
                   <p className="text-moon-300 leading-relaxed">
                     Noctalys décline toute responsabilité pour toute imprécision, inexactitude ou

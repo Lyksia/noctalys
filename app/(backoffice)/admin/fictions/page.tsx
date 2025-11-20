@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Button, Card, CardHeader, CardContent, Badge, Input } from "@/ui";
+import { Button, Card, CardContent, Badge, Input } from "@/ui";
 import { toast } from "sonner";
 
 interface Fiction {
@@ -28,9 +28,27 @@ export default function FictionsAdminPage() {
     fetchFictions();
   }, []);
 
+  const filterFictions = useCallback(() => {
+    let filtered = [...fictions];
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter((fiction) =>
+        fiction.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter((fiction) => fiction.status === statusFilter);
+    }
+
+    setFilteredFictions(filtered);
+  }, [fictions, searchQuery, statusFilter]);
+
   useEffect(() => {
     filterFictions();
-  }, [fictions, searchQuery, statusFilter]);
+  }, [filterFictions]);
 
   const fetchFictions = async () => {
     try {
@@ -49,27 +67,9 @@ export default function FictionsAdminPage() {
     }
   };
 
-  const filterFictions = () => {
-    let filtered = [...fictions];
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter((fiction) =>
-        fiction.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by status
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter((fiction) => fiction.status === statusFilter);
-    }
-
-    setFilteredFictions(filtered);
-  };
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-moon-400">Chargement...</p>
       </div>
     );
@@ -91,7 +91,7 @@ export default function FictionsAdminPage() {
       {/* Filters */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4 md:flex-row">
             {/* Search */}
             <div className="flex-1">
               <Input
@@ -147,21 +147,21 @@ export default function FictionsAdminPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-moon-900 border-b border-moon-700">
+                <thead className="bg-moon-900 border-moon-700 border-b">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-moon-200">
+                    <th className="text-moon-200 px-6 py-4 text-left text-sm font-semibold">
                       Titre
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-moon-200">
+                    <th className="text-moon-200 px-6 py-4 text-left text-sm font-semibold">
                       Genre
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-moon-200">
+                    <th className="text-moon-200 px-6 py-4 text-left text-sm font-semibold">
                       Statut
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-moon-200">
+                    <th className="text-moon-200 px-6 py-4 text-left text-sm font-semibold">
                       Chapitres
                     </th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-moon-200">
+                    <th className="text-moon-200 px-6 py-4 text-right text-sm font-semibold">
                       Actions
                     </th>
                   </tr>
@@ -170,43 +170,33 @@ export default function FictionsAdminPage() {
                   {filteredFictions.map((fiction) => (
                     <tr
                       key={fiction.id}
-                      className="border-b border-moon-800 hover:bg-moon-900/50 transition-colors"
+                      className="border-moon-800 hover:bg-moon-900/50 border-b transition-colors"
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <Link
                             href={`/admin/fictions/${fiction.id}`}
-                            className="font-medium text-moon-100 hover:text-accent-primary transition-colors"
+                            className="text-moon-100 hover:text-accent-primary font-medium transition-colors"
                           >
                             {fiction.title}
                           </Link>
-                          <span className="text-xs text-moon-500">/{fiction.slug}</span>
+                          <span className="text-moon-500 text-xs">/{fiction.slug}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="default">{fiction.genre}</Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge
-                          variant={
-                            fiction.status === "PUBLISHED" ? "success" : "default"
-                          }
-                        >
+                        <Badge variant={fiction.status === "PUBLISHED" ? "success" : "default"}>
                           {fiction.status === "PUBLISHED" ? "Publié" : "Brouillon"}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-moon-300">
-                        {fiction._count.chapters}
-                      </td>
+                      <td className="text-moon-300 px-6 py-4">{fiction._count.chapters}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <Link href={`/admin/fictions/${fiction.id}`}>
                             <Button variant="ghost" size="sm">
-                              <svg
-                                className="h-4 w-4"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
+                              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                 <path
                                   fillRule="evenodd"
@@ -218,11 +208,7 @@ export default function FictionsAdminPage() {
                           </Link>
                           <Link href={`/admin/fictions/${fiction.id}/edit`}>
                             <Button variant="ghost" size="sm">
-                              <svg
-                                className="h-4 w-4"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
+                              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                               </svg>
                             </Button>
@@ -234,11 +220,7 @@ export default function FictionsAdminPage() {
                               rel="noopener noreferrer"
                             >
                               <Button variant="ghost" size="sm">
-                                <svg
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
+                                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
                                   <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                                 </svg>

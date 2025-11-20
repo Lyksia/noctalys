@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Gestion des erreurs spécifiques du SDK
     if (error && typeof error === "object" && "response" in error) {
-      const apiError = error as { response?: { status?: number; data?: any } };
+      const apiError = error as { response?: { status?: number; data?: { message?: string } } };
       const status = apiError.response?.status;
       const errorData = apiError.response?.data;
 

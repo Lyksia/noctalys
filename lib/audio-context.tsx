@@ -44,6 +44,34 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [duration, setDuration] = useState(0);
   const [playlist, setPlaylist] = useState<Track[]>([]);
 
+  const next = () => {
+    if (!currentTrack || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex < playlist.length) {
+      playTrack(playlist[nextIndex]);
+    } else {
+      // End of playlist
+      pause();
+    }
+  };
+
+  const previous = () => {
+    if (!currentTrack || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
+    const prevIndex = currentIndex - 1;
+
+    if (prevIndex >= 0) {
+      playTrack(playlist[prevIndex]);
+    } else {
+      // Go to start of current track
+      seek(0);
+    }
+  };
+
   // Initialize audio element
   useEffect(() => {
     audioRef.current = new Audio();
@@ -85,6 +113,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       audio.removeEventListener("ended", handleEnded);
       audio.pause();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const playTrack = (track: Track) => {
@@ -146,34 +175,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       audioRef.current.volume = vol;
       setVolumeState(vol);
       localStorage.setItem("audio-volume", vol.toString());
-    }
-  };
-
-  const next = () => {
-    if (!currentTrack || playlist.length === 0) return;
-
-    const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
-    const nextIndex = currentIndex + 1;
-
-    if (nextIndex < playlist.length) {
-      playTrack(playlist[nextIndex]);
-    } else {
-      // End of playlist
-      pause();
-    }
-  };
-
-  const previous = () => {
-    if (!currentTrack || playlist.length === 0) return;
-
-    const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
-    const prevIndex = currentIndex - 1;
-
-    if (prevIndex >= 0) {
-      playTrack(playlist[prevIndex]);
-    } else {
-      // Go to start of current track
-      seek(0);
     }
   };
 

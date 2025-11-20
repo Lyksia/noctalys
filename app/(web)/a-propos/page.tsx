@@ -20,7 +20,7 @@ export default function AboutPage() {
             <div className="mb-12 flex flex-col gap-4">
               <h1 className="text-heading-1 text-moon-50 font-serif font-semibold">À propos</h1>
               <p className="text-moon-400 text-lg">
-                Quand la nuit tombe, les histoires s'éveillent...
+                Quand la nuit tombe, les histoires s&apos;éveillent...
               </p>
             </div>
 
@@ -29,16 +29,17 @@ export default function AboutPage() {
               <Card>
                 <CardContent className="prose-reading py-8">
                   <h2 className="text-moon-100 mb-4 font-serif text-2xl font-semibold">
-                    L'essence de Noctalys
+                    L&apos;essence de Noctalys
                   </h2>
                   <p className="text-moon-300 leading-relaxed">
-                    Noctalys est né d'une passion pour les récits nocturnes et les ambiances sonores
-                    envoûtantes. Cette plateforme est un espace de création et de partage où les
-                    histoires prennent vie sous le voile de la nuit.
+                    Noctalys est né d&apos;une passion pour les récits nocturnes et les ambiances
+                    sonores envoûtantes. Cette plateforme est un espace de création et de partage où
+                    les histoires prennent vie sous le voile de la nuit.
                   </p>
                   <p className="text-moon-300 leading-relaxed">
                     Chaque fiction, chaque composition musicale est conçue pour vous transporter
-                    dans un univers contemplatif et mystérieux, où l'imagination n'a pas de limites.
+                    dans un univers contemplatif et mystérieux, où l&apos;imagination n&apos;a pas
+                    de limites.
                   </p>
                 </CardContent>
               </Card>
@@ -49,9 +50,9 @@ export default function AboutPage() {
                     Notre mission
                   </h2>
                   <p className="text-moon-300 leading-relaxed">
-                    Créer un sanctuaire numérique dédié à l'art narratif et musical nocturne.
+                    Créer un sanctuaire numérique dédié à l&apos;art narratif et musical nocturne.
                     Offrir aux lecteurs et auditeurs des expériences immersives qui éveillent
-                    l'imaginaire et invitent à la contemplation.
+                    l&apos;imaginaire et invitent à la contemplation.
                   </p>
                 </CardContent>
               </Card>
@@ -59,7 +60,7 @@ export default function AboutPage() {
               <Card>
                 <CardContent className="prose-reading py-8">
                   <h2 className="text-moon-100 mb-4 font-serif text-2xl font-semibold">
-                    L'univers Noctalys
+                    L&apos;univers Noctalys
                   </h2>
                   <div className="flex flex-col gap-4">
                     <div>
@@ -84,7 +85,7 @@ export default function AboutPage() {
                 <CardContent className="prose-reading py-8">
                   <h2 className="text-moon-100 mb-4 font-serif text-2xl font-semibold">Contact</h2>
                   <p className="text-moon-300 leading-relaxed">
-                    Pour toute question, suggestion ou collaboration, n'hésitez pas à nous
+                    Pour toute question, suggestion ou collaboration, n&apos;hésitez pas à nous
                     contacter à{" "}
                     <a
                       href="mailto:contact@noctalys.fr"

@@ -57,7 +57,9 @@ export function TipTapEditor({
     content,
     editable,
     onUpdate: ({ editor }) => {
-      const markdown = (editor.storage as any).markdown?.getMarkdown() || "";
+      const markdown =
+        (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ||
+        "";
       onChange(markdown);
     },
     editorProps: {
@@ -74,7 +76,9 @@ export function TipTapEditor({
 
   // Update editor content when prop changes
   useEffect(() => {
-    const currentMarkdown = (editor?.storage as any)?.markdown?.getMarkdown() || "";
+    const currentMarkdown =
+      (editor?.storage as { markdown?: { getMarkdown: () => string } })?.markdown?.getMarkdown() ||
+      "";
     if (editor && content !== currentMarkdown) {
       editor.commands.setContent(content);
     }

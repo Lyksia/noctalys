@@ -5,29 +5,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://noctalys.vercel.app";
 
   // Récupérer toutes les fictions et chapitres publiés
-  const [fictions, tracks] = await Promise.all([
-    prisma.fiction.findMany({
-      where: { status: "PUBLISHED" },
-      select: {
-        slug: true,
-        updatedAt: true,
-        chapters: {
-          where: { publishedAt: { not: null } },
-          select: {
-            chapterNumber: true,
-            updatedAt: true,
-          },
+  const fictions = await prisma.fiction.findMany({
+    where: { status: "PUBLISHED" },
+    select: {
+      slug: true,
+      updatedAt: true,
+      chapters: {
+        where: { publishedAt: { not: null } },
+        select: {
+          chapterNumber: true,
+          updatedAt: true,
         },
       },
-    }),
-    prisma.track.findMany({
-      where: { publishedAt: { not: null } },
-      select: {
-        slug: true,
-        updatedAt: true,
-      },
-    }),
-  ]);
+    },
+  });
 
   // Pages statiques
   const staticPages: MetadataRoute.Sitemap = [

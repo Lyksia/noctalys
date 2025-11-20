@@ -71,8 +71,8 @@ export default function MusiquesPage() {
             <div className="text-moon-300 flex max-w-3xl flex-col gap-4 leading-relaxed">
               <p>
                 Fermez les yeux. Laissez les notes vous envelopper comme un voile de brume nocturne.
-                Chaque composition est née dans l'intimité de la nuit, pour accompagner vos instants
-                de contemplation.
+                Chaque composition est née dans l&apos;intimité de la nuit, pour accompagner vos
+                instants de contemplation.
               </p>
               <p className="text-moon-400">
                 Des mélodies douces qui ne cherchent pas à remplir le silence, mais à le sublimer.
@@ -133,15 +133,16 @@ export default function MusiquesPage() {
                         </div>
                         <div className="flex flex-col gap-3">
                           <CardTitle className="font-serif text-2xl">
-                            Les notes s'éveillent bientôt
+                            Les notes s&apos;éveillent bientôt
                           </CardTitle>
                           <CardDescription className="mx-auto max-w-md text-base">
-                            Les premières compositions sont en cours de création. Elles s'élèveront
-                            ici comme des lueurs dans l'obscurité, douces et progressives.
+                            Les premières compositions sont en cours de création. Elles
+                            s&apos;élèveront ici comme des lueurs dans l&apos;obscurité, douces et
+                            progressives.
                           </CardDescription>
                         </div>
                         <p className="text-moon-500 mt-4 text-sm italic">
-                          "La musique est le silence entre les notes."
+                          &quot;La musique est le silence entre les notes.&quot;
                         </p>
                       </div>
                     </CardHeader>

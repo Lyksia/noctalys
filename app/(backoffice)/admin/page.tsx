@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-heading-1 font-serif font-semibold">Tableau de bord</h1>
-        <p className="text-moon-400">Vue d'ensemble de votre plateforme Noctalys</p>
+        <p className="text-moon-400">Vue d&apos;ensemble de votre plateforme Noctalys</p>
       </div>
 
       {/* Stats Grid */}

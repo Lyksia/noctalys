@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface UseAutoSaveOptions {
   onSave: () => void | Promise<void>;
@@ -24,9 +24,8 @@ export function useAutoSave({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [timeSinceLastSave, setTimeSinceLastSave] = useState("");
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const contentRef = useRef<string>("");
 
-  const performSave = async () => {
+  const performSave = useCallback(async () => {
     if (isSaving) return;
 
     try {
@@ -38,14 +37,14 @@ export function useAutoSave({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, onSave]);
 
-  const forceSave = async () => {
+  const forceSave = useCallback(async () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     await performSave();
-  };
+  }, [performSave]);
 
   // Update "time since last save" display
   useEffect(() => {
@@ -94,7 +93,7 @@ export function useAutoSave({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [enabled, delay, onSave]);
+  }, [enabled, delay, performSave]);
 
   return {
     isSaving,

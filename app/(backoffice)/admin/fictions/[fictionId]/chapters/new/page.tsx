@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Label, Card, CardHeader, CardContent, TipTapEditor } from "@/ui";
+import { Button, Input, Label, Card, CardContent, TipTapEditor } from "@/ui";
 import { useAutoSave } from "@/lib/use-auto-save";
 import { chapterCreateSchema } from "@/lib/validations/chapter";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ export default function NewChapterPage({ params }: NewChapterPageProps) {
         if (chaptersRes.ok) {
           const chapters = await chaptersRes.json();
           const maxChapterNumber = chapters.reduce(
-            (max: number, ch: any) => Math.max(max, ch.chapterNumber),
+            (max: number, ch: { chapterNumber: number }) => Math.max(max, ch.chapterNumber),
             0
           );
           setChapterNumber(maxChapterNumber + 1);
@@ -94,6 +94,7 @@ export default function NewChapterPage({ params }: NewChapterPageProps) {
         console.error("Error parsing draft:", error);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fictionId]);
 
   const handleSaveDraft = async () => {
@@ -121,17 +122,18 @@ export default function NewChapterPage({ params }: NewChapterPageProps) {
         return;
       }
 
-      const chapter = await res.json();
+      await res.json();
 
       // Clear draft
       localStorage.removeItem(`chapter-draft-${fictionId}`);
 
       toast.success("Brouillon sauvegardé");
       router.push(`/admin/fictions/${fictionId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving draft:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        const zodError = error as { errors: Array<{ message: string }> };
+        zodError.errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {
@@ -167,10 +169,10 @@ export default function NewChapterPage({ params }: NewChapterPageProps) {
         return;
       }
 
-      const chapter = await res.json();
+      const createdChapter = await res.json();
 
       // Publish chapter
-      const publishRes = await fetch(`/api/admin/chapters/${chapter.id}/publish`, {
+      const publishRes = await fetch(`/api/admin/chapters/${createdChapter.id}/publish`, {
         method: "POST",
       });
 
@@ -184,10 +186,11 @@ export default function NewChapterPage({ params }: NewChapterPageProps) {
 
       toast.success("Chapitre publié avec succès");
       router.push(`/admin/fictions/${fictionId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error publishing:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        const zodError = error as { errors: Array<{ message: string }> };
+        zodError.errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {

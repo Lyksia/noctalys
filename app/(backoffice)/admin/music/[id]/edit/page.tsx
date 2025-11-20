@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -50,11 +50,7 @@ export default function EditMusicPage({ params }: EditMusicPageProps) {
     isPublished: false,
   });
 
-  useEffect(() => {
-    fetchTrack();
-  }, [trackId]);
-
-  const fetchTrack = async () => {
+  const fetchTrack = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/music");
       if (!res.ok) {
@@ -86,7 +82,11 @@ export default function EditMusicPage({ params }: EditMusicPageProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [trackId, router]);
+
+  useEffect(() => {
+    fetchTrack();
+  }, [fetchTrack]);
 
   const handleTitleChange = (value: string) => {
     setFormData((prev) => ({

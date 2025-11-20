@@ -1,13 +1,12 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Button,
   Card,
-  CardHeader,
   CardContent,
   Badge,
   Dialog,
@@ -53,11 +52,7 @@ export default function FictionDetailPage({ params }: FictionDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingChapterId, setDeletingChapterId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchFiction();
-  }, [fictionId]);
-
-  const fetchFiction = async () => {
+  const fetchFiction = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/fictions/${fictionId}`);
       if (!res.ok) {
@@ -73,7 +68,11 @@ export default function FictionDetailPage({ params }: FictionDetailPageProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fictionId, router]);
+
+  useEffect(() => {
+    fetchFiction();
+  }, [fetchFiction]);
 
   const handleDeleteChapter = async (chapterId: string) => {
     try {

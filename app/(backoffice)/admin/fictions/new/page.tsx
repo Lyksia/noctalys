@@ -25,7 +25,6 @@ export default function NewFictionPage() {
   const [summary, setSummary] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [genre, setGenre] = useState("FANTASTIQUE");
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [isLoading, setIsLoading] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
@@ -73,10 +72,10 @@ export default function NewFictionPage() {
       const fiction = await res.json();
       toast.success(publish ? "Fiction publiée" : "Fiction créée");
       router.push(`/admin/fictions/${fiction.id}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating fiction:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        (error as { errors: { message: string }[] }).errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {

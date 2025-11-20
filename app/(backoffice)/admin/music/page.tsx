@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/ui";
+import { Card, CardTitle, CardDescription, CardContent, Button } from "@/ui";
 import { toast } from "sonner";
 
 interface Track {

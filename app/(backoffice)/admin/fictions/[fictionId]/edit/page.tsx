@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -17,7 +17,7 @@ import {
   DialogFooter,
   FileUpload,
 } from "@/ui";
-import { fictionUpdateSchema, slugify } from "@/lib/validations/fiction";
+import { fictionUpdateSchema } from "@/lib/validations/fiction";
 import { toast } from "sonner";
 
 const GENRES = [
@@ -38,10 +38,20 @@ interface EditFictionPageProps {
   }>;
 }
 
+interface Fiction {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  coverImage: string | null;
+  genre: string;
+  status: "DRAFT" | "PUBLISHED";
+}
+
 export default function EditFictionPage({ params }: EditFictionPageProps) {
   const router = useRouter();
   const { fictionId } = use(params);
-  const [fiction, setFiction] = useState<any>(null);
+  const [fiction, setFiction] = useState<Fiction | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [summary, setSummary] = useState("");
@@ -53,11 +63,7 @@ export default function EditFictionPage({ params }: EditFictionPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchFiction();
-  }, [fictionId]);
-
-  const fetchFiction = async () => {
+  const fetchFiction = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/fictions/${fictionId}`);
       if (!res.ok) {
@@ -79,7 +85,11 @@ export default function EditFictionPage({ params }: EditFictionPageProps) {
     } finally {
       setIsFetching(false);
     }
-  };
+  }, [fictionId, router]);
+
+  useEffect(() => {
+    fetchFiction();
+  }, [fetchFiction]);
 
   const handleUpdate = async (publish?: boolean) => {
     try {
@@ -112,10 +122,11 @@ export default function EditFictionPage({ params }: EditFictionPageProps) {
 
       toast.success("Fiction mise à jour");
       router.push(`/admin/fictions/${fictionId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating fiction:", error);
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      if (error instanceof Error && "errors" in error) {
+        const zodError = error as { errors: Array<{ message: string }> };
+        zodError.errors.forEach((err) => {
           toast.error(err.message);
         });
       } else {

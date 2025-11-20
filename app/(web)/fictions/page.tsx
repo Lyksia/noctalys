@@ -1,7 +1,5 @@
-import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
-import { Card, CardHeader, CardTitle, CardDescription, CardFiction, Badge } from "@/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardFiction } from "@/ui";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -58,11 +56,12 @@ export default async function FictionsPage() {
             <div className="text-moon-300 flex max-w-3xl flex-col gap-4 leading-relaxed">
               <p>
                 Chaque fiction est une porte ouverte vers un ailleurs. Des récits tissés avec soin,
-                découpés en chapitres qui s'offrent à vous comme les phases d'une lune croissante.
+                découpés en chapitres qui s&apos;offrent à vous comme les phases d&apos;une lune
+                croissante.
               </p>
               <p className="text-moon-400">
-                Installez-vous confortablement. Le temps s'étire, les mots résonnent. Vous avancez à
-                votre rythme, guidé par la lueur argentée de votre curiosité.
+                Installez-vous confortablement. Le temps s&apos;étire, les mots résonnent. Vous
+                avancez à votre rythme, guidé par la lueur argentée de votre curiosité.
               </p>
             </div>
           </div>
@@ -117,7 +116,7 @@ export default async function FictionsPage() {
                           </CardDescription>
                         </div>
                         <p className="text-moon-500 mt-4 text-sm italic">
-                          "Toute grande histoire commence par un silence."
+                          &quot;Toute grande histoire commence par un silence.&quot;
                         </p>
                       </div>
                     </CardHeader>
