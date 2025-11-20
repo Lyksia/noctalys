@@ -9,16 +9,14 @@ interface UseChapterPurchaseResult {
 /**
  * Hook pour vérifier si un utilisateur a acheté un chapitre
  */
-export function useChapterPurchase(
-  chapterId: string,
-): UseChapterPurchaseResult {
+export function useChapterPurchase(chapterId: string): UseChapterPurchaseResult {
   const [isPurchased, setIsPurchased] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkPurchaseStatus = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/chapters/${chapterId}/status`);
+      const res = await fetch(`/api/purchase/chapters/${chapterId}/status`);
 
       if (res.ok) {
         const data = await res.json();

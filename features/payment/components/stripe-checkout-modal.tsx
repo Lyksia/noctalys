@@ -2,18 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 import { toast } from "sonner";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 interface StripeCheckoutModalProps {
   chapterId: string;
@@ -35,7 +28,7 @@ export function StripeCheckoutModal({
     // Créer le Payment Intent
     const createPaymentIntent = async () => {
       try {
-        const res = await fetch(`/api/chapters/${chapterId}/purchase`, {
+        const res = await fetch(`/api/purchase/chapters/${chapterId}`, {
           method: "POST",
         });
 
@@ -65,7 +58,7 @@ export function StripeCheckoutModal({
       <Dialog open onOpenChange={onClose}>
         <DialogContent>
           <div className="flex flex-col items-center gap-4 py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-electric-blue border-t-transparent" />
+            <div className="border-electric-blue h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
             <p className="text-moon-400">Préparation du paiement...</p>
           </div>
         </DialogContent>
@@ -96,11 +89,7 @@ export function StripeCheckoutModal({
             },
           }}
         >
-          <CheckoutForm
-            amount={amount}
-            onSuccess={onSuccess}
-            onCancel={onClose}
-          />
+          <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} />
         </Elements>
       </DialogContent>
     </Dialog>
@@ -152,11 +141,9 @@ function CheckoutForm({ amount, onSuccess, onCancel }: CheckoutFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* Amount */}
-      <div className="border-moon-800 rounded-lg border bg-moon-900/50 p-4 text-center">
+      <div className="border-moon-800 bg-moon-900/50 rounded-lg border p-4 text-center">
         <p className="text-moon-400 text-sm">Montant à payer</p>
-        <p className="mt-1 text-heading-2 font-bold text-electric-blue">
-          {formattedAmount} €
-        </p>
+        <p className="text-heading-2 text-electric-blue mt-1 font-bold">{formattedAmount} €</p>
       </div>
 
       {/* Payment Element */}
@@ -173,23 +160,14 @@ function CheckoutForm({ amount, onSuccess, onCancel }: CheckoutFormProps) {
         >
           Annuler
         </Button>
-        <Button
-          type="submit"
-          disabled={!stripe || isProcessing}
-          className="flex-1"
-        >
+        <Button type="submit" disabled={!stripe || isProcessing} className="flex-1">
           {isProcessing ? "Traitement..." : "Payer"}
         </Button>
       </div>
 
       {/* Security Info */}
-      <p className="text-center text-xs text-moon-500">
-        <svg
-          className="mr-1 inline h-3 w-3"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+      <p className="text-moon-500 text-center text-xs">
+        <svg className="mr-1 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
