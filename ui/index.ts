@@ -1,7 +1,15 @@
 // Barrel exports for UI components
 
 export { Button, buttonVariants } from "./button";
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./card";
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardAction,
+} from "./card";
 export { Input } from "./input";
 export { Textarea } from "./textarea";
 export { Label } from "./label";
@@ -19,3 +27,9 @@ export {
   DialogDescription,
 } from "./dialog";
 export { Toaster } from "./sonner";
+export { Logo } from "./logo";
+export { CardFiction } from "./card-fiction";
+export { CardTrack } from "./card-track";
+export { TipTapEditor } from "./tiptap-editor";
+export { AudioPlayer } from "./audio-player";
+export { FileUpload } from "./file-upload";

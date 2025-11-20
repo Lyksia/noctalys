@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # Mises à jour des dépendances npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Grouper les updates Next.js ensemble
+      nextjs:
+        patterns:
+          - "next"
+          - "@next/*"
+      # Grouper les updates React ensemble
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+      # Grouper les updates Prisma ensemble
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      # Grouper les dev dependencies
+      development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Mises à jour des GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

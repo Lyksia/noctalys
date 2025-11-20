@@ -1,5 +1,6 @@
 // ===================================
 // NOCTALYS PRISMA SCHEMA
+// Compatible Better Auth
 // ===================================
 
 generator client {
@@ -33,7 +34,7 @@ enum Status {
 }
 
 // ===================================
-// MODELS
+// MODELS - CONTENT
 // ===================================
 
 model Fiction {
@@ -89,19 +90,23 @@ model Track {
   @@map("tracks")
 }
 
+// ===================================
+// MODELS - BETTER AUTH
+// ===================================
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String // Hashed password
-  name      String?
-  role      String   @default("admin")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   sessions Session[]
   accounts Account[]
 
-  @@map("users")
+  @@map("user")
 }
 
 model Session {
@@ -112,31 +117,46 @@ model Session {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([token])
-  @@map("sessions")
+  @@map("session")
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refreshToken      String? @db.Text
-  accessToken       String? @db.Text
-  expiresAt         Int?
-  tokenType         String?
-  scope             String?
-  idToken           String? @db.Text
-  sessionState      String?
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  idToken String?
+
+  @@unique([userId, accountId])
   @@index([userId])
-  @@map("accounts")
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@map("verification")
 }
