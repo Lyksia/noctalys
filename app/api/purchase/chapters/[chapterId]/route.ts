@@ -57,10 +57,58 @@ export async function POST(
     });
 
     if (existingPurchase) {
-      return NextResponse.json({ error: "Vous possédez déjà ce chapitre" }, { status: 400 });
+      // Si l'achat est déjà réussi
+      if (existingPurchase.status === "succeeded") {
+        return NextResponse.json({ error: "Vous possédez déjà ce chapitre" }, { status: 400 });
+      }
+
+      // Si un achat est en cours (pending), récupérer le Payment Intent existant
+      if (existingPurchase.status === "pending") {
+        const stripe = getStripe();
+        try {
+          const existingPaymentIntent = await stripe.paymentIntents.retrieve(
+            existingPurchase.stripePaymentIntentId
+          );
+
+          // Si le Payment Intent est toujours valide, le retourner
+          if (
+            existingPaymentIntent.status === "requires_payment_method" ||
+            existingPaymentIntent.status === "requires_confirmation"
+          ) {
+            return NextResponse.json({
+              clientSecret: existingPaymentIntent.client_secret,
+              amount: existingPurchase.amount,
+            });
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération du Payment Intent:", error);
+        }
+
+        // Si le Payment Intent n'est plus valide, supprimer l'ancien et créer un nouveau
+        await prisma.chapterPurchase.delete({
+          where: {
+            userId_chapterId: {
+              userId: session.user.id,
+              chapterId: chapterId,
+            },
+          },
+        });
+      }
+
+      // Si l'achat a échoué, supprimer l'ancien et créer un nouveau
+      if (existingPurchase.status === "failed") {
+        await prisma.chapterPurchase.delete({
+          where: {
+            userId_chapterId: {
+              userId: session.user.id,
+              chapterId: chapterId,
+            },
+          },
+        });
+      }
     }
 
-    // Créer un Payment Intent Stripe
+    // Créer un nouveau Payment Intent Stripe
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: chapter.price,
