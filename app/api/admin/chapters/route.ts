@@ -8,6 +8,8 @@ const chapterCreateSchema = z.object({
   chapterNumber: z.number().int().positive(),
   title: z.string().min(3).max(200),
   content: z.string().min(100),
+  isFree: z.boolean().optional(),
+  price: z.number().int().min(0).nullable().optional(),
 });
 
 const chapterUpdateSchema = chapterCreateSchema.partial();
@@ -63,9 +65,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Déterminer automatiquement si le chapitre est gratuit
+    const isFree = validatedData.chapterNumber === 1;
+    const price = isFree ? null : (validatedData.price ?? 299); // 2.99€ par défaut
+
     const chapter = await prisma.chapter.create({
       data: {
         ...validatedData,
+        isFree,
+        price,
         publishedAt: null, // Draft by default
       },
     });

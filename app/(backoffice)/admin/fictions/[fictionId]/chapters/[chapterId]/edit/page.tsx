@@ -37,10 +37,13 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
     content: string;
     chapterNumber: number;
     publishedAt: Date | null;
+    isFree: boolean;
+    price: number | null;
   } | null>(null);
   const [chapterNumber, setChapterNumber] = useState<number>(1);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [price, setPrice] = useState<number>(2.99); // Prix en euros
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -86,6 +89,8 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
           setChapterNumber(fullChapter.chapterNumber);
           setTitle(fullChapter.title);
           setContent(fullChapter.content);
+          // Convertir le prix de centimes en euros
+          setPrice(fullChapter.price ? fullChapter.price / 100 : 2.99);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -104,6 +109,9 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
       if (!chapter) return;
 
       try {
+        const isFree = chapterNumber === 1;
+        const priceInCents = isFree ? null : Math.round(price * 100);
+
         const validatedData = chapterUpdateSchema.parse({
           chapterNumber,
           title,
@@ -113,7 +121,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
         const res = await fetch(`/api/admin/chapters?id=${chapterId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(validatedData),
+          body: JSON.stringify({
+            ...validatedData,
+            isFree,
+            price: priceInCents,
+          }),
         });
 
         if (!res.ok) {
@@ -131,6 +143,9 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
     try {
       setIsLoading(true);
 
+      const isFree = chapterNumber === 1;
+      const priceInCents = isFree ? null : Math.round(price * 100);
+
       const validatedData = chapterUpdateSchema.parse({
         chapterNumber,
         title,
@@ -140,7 +155,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
       const res = await fetch(`/api/admin/chapters?id=${chapterId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validatedData),
+        body: JSON.stringify({
+          ...validatedData,
+          isFree,
+          price: priceInCents,
+        }),
       });
 
       if (!res.ok) {
@@ -170,6 +189,9 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
     try {
       setIsLoading(true);
 
+      const isFree = chapterNumber === 1;
+      const priceInCents = isFree ? null : Math.round(price * 100);
+
       // First update the chapter
       const validatedData = chapterUpdateSchema.parse({
         chapterNumber,
@@ -180,7 +202,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
       const updateRes = await fetch(`/api/admin/chapters?id=${chapterId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validatedData),
+        body: JSON.stringify({
+          ...validatedData,
+          isFree,
+          price: priceInCents,
+        }),
       });
 
       if (!updateRes.ok) {
@@ -286,8 +312,8 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
       <Card>
         <CardContent className="py-6">
           <div className="flex flex-col gap-6">
-            {/* Chapter Number and Title */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {/* Chapter Number, Title and Price */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="chapterNumber">Numéro</Label>
                 <Input
@@ -300,7 +326,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-3">
+              <div className="flex flex-col gap-2 md:col-span-4">
                 <Label htmlFor="title">Titre du chapitre</Label>
                 <Input
                   id="title"
@@ -308,6 +334,25 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="bg-moon-900 border-moon-700"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="price">
+                  Prix (€)
+                  {chapterNumber === 1 && (
+                    <span className="ml-2 text-xs text-green-500">Gratuit</span>
+                  )}
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={chapterNumber === 1 ? 0 : price}
+                  onChange={(e) => setPrice(parseFloat(e.target.value))}
+                  min={0}
+                  step={0.01}
+                  disabled={chapterNumber === 1}
+                  className="bg-moon-900 border-moon-700 disabled:opacity-50"
                 />
               </div>
             </div>

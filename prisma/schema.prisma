@@ -63,10 +63,13 @@ model Chapter {
   title         String
   content       String    @db.Text
   publishedAt   DateTime?
+  isFree        Boolean   @default(false) // true pour chapitre 1
+  price         Int? // Prix en centimes (ex: 299 = 2.99€), null si gratuit
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  fiction Fiction @relation(fields: [fictionId], references: [id], onDelete: Cascade)
+  fiction   Fiction           @relation(fields: [fictionId], references: [id], onDelete: Cascade)
+  purchases ChapterPurchase[]
 
   @@unique([fictionId, chapterNumber])
   @@index([fictionId, chapterNumber])
@@ -103,8 +106,9 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  sessions Session[]
-  accounts Account[]
+  sessions  Session[]
+  accounts  Account[]
+  purchases ChapterPurchase[]
 
   @@map("user")
 }
@@ -159,4 +163,30 @@ model Verification {
 
   @@unique([identifier, value])
   @@map("verification")
+}
+
+// ===================================
+// MODELS - PAYMENTS
+// ===================================
+
+model ChapterPurchase {
+  id                    String   @id @default(cuid())
+  userId                String
+  chapterId             String
+  stripePaymentIntentId String   @unique
+  amount                Int // Prix en centimes (ex: 299 = 2.99€)
+  currency              String   @default("eur")
+  status                String   @default("pending") // pending, succeeded, failed
+  purchasedAt           DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@index([userId])
+  @@index([chapterId])
+  @@index([status])
+  @@map("chapter_purchases")
 }
