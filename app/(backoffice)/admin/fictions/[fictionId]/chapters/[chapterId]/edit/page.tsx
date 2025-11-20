@@ -229,7 +229,9 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
       }
 
       toast.success("Chapitre dépublié");
-      setChapter({ ...chapter, publishedAt: null });
+      if (chapter) {
+        setChapter({ ...chapter, publishedAt: null });
+      }
     } catch (error) {
       console.error("Error unpublishing:", error);
       toast.error("Erreur lors de la dépublication");
