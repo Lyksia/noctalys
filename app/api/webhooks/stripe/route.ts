@@ -62,38 +62,49 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   console.log("✅ Payment Intent succeeded:", paymentIntent.id);
 
   try {
-    // Mettre à jour le ChapterPurchase avec le statut succeeded
-    const purchase = await prisma.chapterPurchase.update({
+    // Vérifier si l'entrée existe déjà
+    const existingPurchase = await prisma.chapterPurchase.findUnique({
       where: {
         stripePaymentIntentId: paymentIntent.id,
       },
-      data: {
-        status: "succeeded",
-        purchasedAt: new Date(),
-      },
-      include: {
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
-        chapter: {
-          select: {
-            title: true,
-            fiction: {
-              select: {
-                title: true,
-              },
-            },
-          },
-        },
-      },
     });
 
-    console.log(
-      `✅ Achat confirmé: ${purchase.user.name || purchase.user.email} a acheté "${purchase.chapter.fiction.title} - ${purchase.chapter.title}"`
-    );
+    if (!existingPurchase) {
+      // Si l'entrée n'existe pas, la créer à partir des métadonnées
+      const { userId, chapterId } = paymentIntent.metadata;
+
+      if (!userId || !chapterId) {
+        console.error("❌ Métadonnées manquantes dans Payment Intent:", paymentIntent.id);
+        return;
+      }
+
+      await prisma.chapterPurchase.create({
+        data: {
+          userId,
+          chapterId,
+          stripePaymentIntentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          status: "succeeded",
+          purchasedAt: new Date(),
+        },
+      });
+
+      console.log(`✅ Achat créé et confirmé pour userId: ${userId}, chapterId: ${chapterId}`);
+    } else {
+      // Mettre à jour l'entrée existante
+      await prisma.chapterPurchase.update({
+        where: {
+          stripePaymentIntentId: paymentIntent.id,
+        },
+        data: {
+          status: "succeeded",
+          purchasedAt: new Date(),
+        },
+      });
+
+      console.log(`✅ Achat mis à jour pour Payment Intent: ${paymentIntent.id}`);
+    }
 
     // TODO: Envoyer un email de confirmation (optionnel)
     // TODO: Invalider les caches React Query si nécessaire
