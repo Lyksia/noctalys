@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/ui";
-import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { canAccessChapter } from "@/lib/auth/permissions";
+import { headers } from "next/headers";
+import { ChapterContent } from "@/features/chapter/components/chapter-content";
 import type { Metadata } from "next";
 
 interface ChapterPageProps {
@@ -93,12 +96,25 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
       title: true,
       content: true,
       publishedAt: true,
+      isFree: true,
+      price: true,
     },
   });
 
   if (!chapter) {
     notFound();
   }
+
+  // Check authentication
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const userId = session?.user?.id || null;
+  const isAuthenticated = !!userId;
+
+  // Check if user can access this chapter
+  const hasAccess = await canAccessChapter(userId, chapter.id);
 
   // Get total chapters count
   const totalChapters = await prisma.chapter.count({
@@ -192,9 +208,12 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
           </header>
 
           {/* Chapter Content */}
-          <div className="prose-reading">
-            <Markdown>{chapter.content}</Markdown>
-          </div>
+          <ChapterContent
+            chapter={chapter}
+            fiction={fiction}
+            canAccess={hasAccess}
+            isAuthenticated={isAuthenticated}
+          />
 
           {/* End Ornament */}
           <div className="my-12 flex items-center justify-center gap-4">
