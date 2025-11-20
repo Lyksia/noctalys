@@ -57,6 +57,9 @@ export function StripeCheckoutModal({
     return (
       <Dialog open onOpenChange={onClose}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Préparation du paiement</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="border-electric-blue h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
             <p className="text-moon-400">Préparation du paiement...</p>
