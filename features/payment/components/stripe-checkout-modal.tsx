@@ -68,7 +68,7 @@ export function StripeCheckoutModal({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Paiement sécurisé</DialogTitle>
         </DialogHeader>
@@ -139,18 +139,18 @@ function CheckoutForm({ amount, onSuccess, onCancel }: CheckoutFormProps) {
   const formattedAmount = (amount / 100).toFixed(2);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {/* Amount */}
-      <div className="border-moon-800 bg-moon-900/50 rounded-lg border p-4 text-center">
-        <p className="text-moon-400 text-sm">Montant à payer</p>
-        <p className="text-heading-2 text-electric-blue mt-1 font-bold">{formattedAmount} €</p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* Amount - Compact */}
+      <div className="border-moon-800 bg-moon-900/50 flex items-center justify-between rounded-lg border px-4 py-3">
+        <span className="text-moon-400 text-sm">Montant</span>
+        <span className="text-electric-blue text-xl font-bold">{formattedAmount} €</span>
       </div>
 
       {/* Payment Element */}
       <PaymentElement />
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <Button
           type="button"
           variant="ghost"
@@ -166,7 +166,7 @@ function CheckoutForm({ amount, onSuccess, onCancel }: CheckoutFormProps) {
       </div>
 
       {/* Security Info */}
-      <p className="text-moon-500 text-center text-xs">
+      <p className="text-moon-500 -mt-2 text-center text-xs">
         <svg className="mr-1 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
