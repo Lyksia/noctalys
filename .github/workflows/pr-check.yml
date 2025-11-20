@@ -42,6 +42,9 @@ jobs:
         run: pnpm run build
         env:
           SKIP_ENV_VALIDATION: true
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          FILE_MANAGER_API_KEY: ${{ secrets.FILE_MANAGER_API_KEY }}
 
       - name: PR Check Summary
         if: success()
