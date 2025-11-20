@@ -113,6 +113,7 @@ export async function POST(
     const paymentIntent = await stripe.paymentIntents.create({
       amount: chapter.price,
       currency: "eur",
+      payment_method_types: ["card"], // Uniquement les cartes bancaires
       metadata: {
         userId: session.user.id,
         chapterId: chapterId,
