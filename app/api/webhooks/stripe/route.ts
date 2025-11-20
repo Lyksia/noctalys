@@ -62,49 +62,40 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   console.log("✅ Payment Intent succeeded:", paymentIntent.id);
 
   try {
-    // Vérifier si l'entrée existe déjà
-    const existingPurchase = await prisma.chapterPurchase.findUnique({
+    const { userId, chapterId } = paymentIntent.metadata;
+
+    if (!userId || !chapterId) {
+      console.error("❌ Métadonnées manquantes dans Payment Intent:", paymentIntent.id);
+      return;
+    }
+
+    // Utiliser upsert pour éviter les race conditions
+    // Si l'entrée existe (créée par l'API), on la met à jour
+    // Sinon on la crée (cas où webhook arrive avant)
+    await prisma.chapterPurchase.upsert({
       where: {
+        userId_chapterId: {
+          userId,
+          chapterId,
+        },
+      },
+      update: {
+        status: "succeeded",
+        purchasedAt: new Date(),
         stripePaymentIntentId: paymentIntent.id,
+      },
+      create: {
+        userId,
+        chapterId,
+        stripePaymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: "succeeded",
+        purchasedAt: new Date(),
       },
     });
 
-    if (!existingPurchase) {
-      // Si l'entrée n'existe pas, la créer à partir des métadonnées
-      const { userId, chapterId } = paymentIntent.metadata;
-
-      if (!userId || !chapterId) {
-        console.error("❌ Métadonnées manquantes dans Payment Intent:", paymentIntent.id);
-        return;
-      }
-
-      await prisma.chapterPurchase.create({
-        data: {
-          userId,
-          chapterId,
-          stripePaymentIntentId: paymentIntent.id,
-          amount: paymentIntent.amount,
-          currency: paymentIntent.currency,
-          status: "succeeded",
-          purchasedAt: new Date(),
-        },
-      });
-
-      console.log(`✅ Achat créé et confirmé pour userId: ${userId}, chapterId: ${chapterId}`);
-    } else {
-      // Mettre à jour l'entrée existante
-      await prisma.chapterPurchase.update({
-        where: {
-          stripePaymentIntentId: paymentIntent.id,
-        },
-        data: {
-          status: "succeeded",
-          purchasedAt: new Date(),
-        },
-      });
-
-      console.log(`✅ Achat mis à jour pour Payment Intent: ${paymentIntent.id}`);
-    }
+    console.log(`✅ Achat confirmé pour userId: ${userId}, chapterId: ${chapterId}`);
 
     // TODO: Envoyer un email de confirmation (optionnel)
     // TODO: Invalider les caches React Query si nécessaire
