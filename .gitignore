@@ -44,3 +44,5 @@ prisma/migrations/migration_lock.toml
 .cursor
 docs
 CLAUDE.md
+-e 
+.env.prod
